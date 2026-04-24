@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   X,
+  Home,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -18,6 +19,8 @@ const navItems = [
   { path: "/teachers", label: "Ogretmenler", icon: Users, roles: ["Admin", "Advisor", "SchoolAdmin", "Teacher"] },
   { path: "/videos", label: "Videolar", icon: FileVideo, roles: ["Admin", "Advisor", "SchoolAdmin", "Teacher"] },
   { path: "/reports", label: "Raporlar", icon: FileText, roles: ["Admin", "Advisor", "SchoolAdmin", "Teacher"] },
+  { path: "/working-groups", label: "Çalisma Gruplari", icon: Users, roles: ["Admin", "SchoolAdmin"] },
+  { path: "/councils", label: "Kurullar", icon: Users, roles: ["Admin", "SchoolAdmin"] },
   { path: "/team", label: "Ekip", icon: UserCog, roles: ["Admin"] },
   { path: "/settings", label: "Tanimlar", icon: Settings, roles: ["Admin"] },
 ];
@@ -77,9 +80,15 @@ export default function Layout() {
             );
           })}
         </nav>
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-          <div className="flex items-center gap-3 mb-3 px-3">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-sm font-medium">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 space-y-2">
+          <button
+            onClick={() => {
+              navigate("/profile");
+              setSidebarOpen(false);
+            }}
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left"
+          >
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-sm font-medium flex-shrink-0">
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </div>
             <div className="flex-1 min-w-0">
@@ -88,7 +97,7 @@ export default function Layout() {
               </p>
               <p className="text-xs text-gray-500 truncate">{user?.role}</p>
             </div>
-          </div>
+          </button>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -116,6 +125,15 @@ export default function Layout() {
           >
             <Menu className="w-5 h-5" />
           </button>
+          <div className="flex-1" />
+          <Link
+            to="/schools"
+            className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Ana sayfa"
+          >
+            <Home className="w-5 h-5" />
+            <span className="text-sm font-medium">Ana Sayfa</span>
+          </Link>
         </header>
         <main className="flex-1 overflow-auto p-6">
           <Outlet />

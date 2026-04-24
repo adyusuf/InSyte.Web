@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
+import ProfilePage from "./pages/ProfilePage";
 import SchoolsPage from "./pages/SchoolsPage";
 import SchoolDetailPage from "./pages/SchoolDetailPage";
 import TeachersPage from "./pages/TeachersPage";
@@ -15,6 +16,8 @@ import SettingsPage from "./pages/SettingsPage";
 import AISettingsPage from "./pages/AISettingsPage";
 import CriteriaPage from "./pages/CriteriaPage";
 import QuestionsPage from "./pages/QuestionsPage";
+import WorkingGroupsPage from "./pages/WorkingGroupsPage";
+import CouncilsPage from "./pages/CouncilsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +52,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<Navigate to="/schools" />} />
+        <Route path="profile" element={<ProfilePage />} />
         <Route path="schools" element={<SchoolsPage />} />
         <Route path="schools/:id" element={<SchoolDetailPage />} />
         <Route path="teachers" element={<TeachersPage />} />
@@ -61,6 +65,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute requiredRole="Admin">
               <TeamPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="working-groups"
+          element={
+            <ProtectedRoute>
+              <WorkingGroupsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="councils"
+          element={
+            <ProtectedRoute>
+              <CouncilsPage />
             </ProtectedRoute>
           }
         />
