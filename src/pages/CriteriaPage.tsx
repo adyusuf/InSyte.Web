@@ -1,7 +1,8 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Plus, Edit2, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../lib/api";
+import { apiEndpoints } from "../lib/endpoints";
 import { ApiResponse, PagedResult } from "../types";
 import FormModal from "../components/FormModal";
 import SearchInput from "../components/SearchInput";
@@ -39,34 +40,21 @@ export default function CriteriaPage() {
         .then((r) => r.data.data!),
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data: { name: string; description: string; instructions: string; subject: string }) =>
-      api.post("/criteria", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["criteria"] });
-      handleCloseModal();
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (data: { name: string; description: string; instructions: string; subject: string }) =>
-      api.put(`/criteria/${editingCriteria?.id}`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["criteria"] });
-      handleCloseModal();
-    },
-  });
-
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/criteria/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["criteria"] });
-    },
+    mutationFn: (id: string) => api.delete(apiEndpoints.criteria.delete(id)),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["criteria"] }),
   });
 
+  // Sadece modal UI'ını kapatır — crud bağımlılığı yok, useCRUDForm'a güvenle geçilebilir
+  const closeModalUI = () => {
+    setShowModal(false);
+    setEditingCriteria(null);
+  };
+
+  // useCRUDForm: form state + create/update mutations (onSuccess içinde resetForm zaten çağrılır)
   const crud = useCRUDForm(
     { name: "", description: "", instructions: "", subject: "" },
-    { endpoint: "/criteria", queryKey: ["criteria"] }
+    { endpoint: apiEndpoints.criteria.list(), queryKey: ["criteria"], onSuccess: closeModalUI }
   );
 
   const handleOpenModal = (criteria?: Criteria) => {
@@ -86,17 +74,12 @@ export default function CriteriaPage() {
   };
 
   const handleCloseModal = () => {
-    setShowModal(false);
-    setEditingCriteria(null);
+    closeModalUI();
     crud.resetForm();
   };
 
   const handleSave = () => {
-    if (editingCriteria) {
-      updateMutation.mutate(crud.form);
-    } else {
-      createMutation.mutate(crud.form);
-    }
+    crud.handleSubmit({ preventDefault: () => {} } as React.FormEvent);
   };
 
   return (
@@ -163,7 +146,7 @@ export default function CriteriaPage() {
         title={editingCriteria ? `${LABELS.EVALUATION_CRITERIA.split(" ")[1]} ${LABELS.EDIT}` : `${LABELS.EVALUATION_CRITERIA.split(" ")[1]} ${LABELS.ADD}`}
         onClose={handleCloseModal}
         onSubmit={handleSave}
-        isLoading={createMutation.isPending || updateMutation.isPending}
+        isLoading={crud.isLoading}
       >
         <input
           type="text"

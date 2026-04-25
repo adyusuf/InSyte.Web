@@ -1,9 +1,9 @@
 // API Endpoint constants
 export const apiEndpoints = {
   auth: {
-    login: '/auth/login',
-    refresh: '/auth/refresh',
-    me: '/auth/me',
+    login: '/v1/auth/login',
+    refresh: '/v1/auth/refresh',
+    me: '/v1/auth/me',
   },
   users: {
     list: () => '/users',
