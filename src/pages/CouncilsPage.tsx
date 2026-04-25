@@ -39,6 +39,9 @@ export default function CouncilsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showMembersModal, setShowMembersModal] = useState<string | null>(null);
   const [members, setMembers] = useState<CouncilMember[]>([]);
+  const [memberLoading, setMemberLoading] = useState(false);
+  const [memberError, setMemberError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const form = useForm({
     resolver: zodResolver(councilSchema),
@@ -56,6 +59,7 @@ export default function CouncilsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/v1/councils/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["councils"] }),
+    onError: () => setFormError("Kurul silinirken bir hata oluştu."),
   });
 
   const updateMutation = useMutation({
@@ -66,7 +70,9 @@ export default function CouncilsPage() {
       setEditingId(null);
       form.reset();
       setShowForm(false);
+      setFormError(null);
     },
+    onError: () => setFormError("Kurul güncellenirken bir hata oluştu."),
   });
 
   const createMutation = useMutation({
@@ -75,7 +81,9 @@ export default function CouncilsPage() {
       queryClient.invalidateQueries({ queryKey: ["councils"] });
       form.reset();
       setShowForm(false);
+      setFormError(null);
     },
+    onError: () => setFormError("Kurul oluşturulurken bir hata oluştu."),
   });
 
   const filteredCouncils = councils?.filter((c: Council) =>
@@ -102,39 +110,44 @@ export default function CouncilsPage() {
     }
   };
 
-  const handleViewMembers = async (councilId: string) => {
+  const fetchMembers = async (councilId: string) => {
+    setMemberLoading(true);
+    setMemberError(null);
     try {
       const response = await api.get(`/v1/councils/${councilId}/members`);
       setMembers(response.data.data || []);
-      setShowMembersModal(councilId);
-    } catch (err) {
-      console.error("Error fetching members:", err);
+    } catch {
+      setMemberError("Üyeler yüklenirken bir hata oluştu.");
+    } finally {
+      setMemberLoading(false);
     }
   };
 
+  const handleViewMembers = async (councilId: string) => {
+    setShowMembersModal(councilId);
+    await fetchMembers(councilId);
+  };
+
   const handleRemoveMember = async (councilId: string, memberId: string) => {
-    if (window.confirm("Bu üyeyi kuruldan kaldırmak istediğinizden emin misiniz?")) {
-      try {
-        await api.delete(`/v1/councils/${councilId}/members/${memberId}`);
-        setMembers(members.filter(m => m.id !== memberId));
-      } catch (err) {
-        console.error("Error removing member:", err);
-      }
+    if (!window.confirm("Bu üyeyi kuruldan kaldırmak istediğinizden emin misiniz?")) return;
+    setMemberError(null);
+    try {
+      await api.delete(`/v1/councils/${councilId}/members/${memberId}`);
+      setMembers(prev => prev.filter(m => m.id !== memberId));
+    } catch {
+      setMemberError("Üye kaldırılırken bir hata oluştu.");
     }
   };
 
   const handleAddMember = async (councilId: string, userId: string) => {
     if (!userId.trim()) return;
+    setMemberError(null);
     try {
-      await api.post(`/v1/councils/${councilId}/members`, {
-        userId,
-        role: "Üye"
-      });
-      // Refresh members list
-      const response = await api.get(`/v1/councils/${councilId}/members`);
-      setMembers(response.data.data || []);
-    } catch (err) {
-      console.error("Error adding member:", err);
+      await api.post(`/v1/councils/${councilId}/members`, { userId, role: "Üye" });
+      await fetchMembers(councilId);
+    } catch (err: any) {
+      const msg = err?.response?.data?.error?.message;
+      setMemberError(msg || "Üye eklenirken bir hata oluştu.");
     }
   };
 
@@ -166,6 +179,11 @@ export default function CouncilsPage() {
       {showForm && (
         <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
           <h2 className="text-lg font-semibold">{editingId ? "Kurulu Düzenle" : "Yeni Kurul Ekle"}</h2>
+          {formError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" role="alert">
+              {formError}
+            </div>
+          )}
           <form onSubmit={form.handleSubmit(handleAddOrUpdateCouncil)} className="space-y-4">
             <div>
               <input
@@ -287,14 +305,20 @@ export default function CouncilsPage() {
               </button>
             </div>
 
+            {memberError && (
+              <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700" role="alert">
+                {memberError}
+              </div>
+            )}
+
             {/* Add Member Form */}
             <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <h3 className="text-sm font-semibold mb-2">Üye Ekle</h3>
               <input
                 type="text"
-                id="userId"
+                id="council-userId"
                 placeholder="Kullanıcı ID veya E-posta"
-                className="w-full px-2 py-2 border border-gray-300 rounded text-sm"
+                className="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.target as HTMLInputElement).value) {
                     handleAddMember(showMembersModal, (e.target as HTMLInputElement).value);
@@ -307,22 +331,27 @@ export default function CouncilsPage() {
 
             {/* Members List */}
             <div className="space-y-2">
-              {members.length === 0 ? (
-                <p className="text-gray-500 text-sm">Kurul üyesi yok</p>
+              {memberLoading ? (
+                <div className="flex items-center justify-center py-4" role="status" aria-label="Yükleniyor">
+                  <div className="w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : members.length === 0 ? (
+                <p className="text-gray-500 text-sm text-center py-4">Kurul üyesi yok</p>
               ) : (
                 members.map((member) => (
                   <div key={member.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                     <div className="flex-1">
                       <p className="font-medium text-sm">{member.firstName} {member.lastName}</p>
                       <p className="text-xs text-gray-600">{member.email}</p>
-                      <p className="text-xs text-gray-500">{member.role}</p>
+                      <p className="text-xs text-gray-500">{member.role || "Üye"}</p>
                     </div>
                     <button
                       onClick={() => handleRemoveMember(showMembersModal, member.id)}
                       className="p-1 text-red-600 hover:bg-red-50 rounded"
                       title="Üyeyi Kaldır"
+                      aria-label={`${member.firstName} ${member.lastName} üyesini kaldır`}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
                     </button>
                   </div>
                 ))
