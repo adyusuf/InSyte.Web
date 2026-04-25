@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import api from "../lib/api";
+import api, { tokenStorage } from "../lib/api";
 import { User } from "../types";
 
 interface AuthContextType {
@@ -16,15 +16,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = tokenStorage.getAccess();
     if (token) {
       api
-        .get("/auth/me")
+        .get("/v1/auth/me")
         .then((res) => setUser(res.data.data))
-        .catch(() => {
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
-        })
+        .catch(() => tokenStorage.clear())
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
@@ -32,16 +29,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await api.post("/auth/login", { email, password });
-    const { accessToken, refreshToken, user } = res.data.data;
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    setUser(user);
+    const res = await api.post("/v1/auth/login", { email, password });
+    const { accessToken, refreshToken, user: loggedInUser } = res.data.data;
+    tokenStorage.setAccess(accessToken);
+    tokenStorage.setRefresh(refreshToken);
+    setUser(loggedInUser);
   };
 
   const logout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+    tokenStorage.clear();
     setUser(null);
   };
 

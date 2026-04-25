@@ -48,7 +48,7 @@ export default function CouncilsPage() {
   const { data: councils, isLoading } = useQuery({
     queryKey: ["councils"],
     queryFn: async () => {
-      const response = await api.get("/Councils");
+      const response = await api.get("/v1/councils");
       return response.data.data || [];
     },
   });
