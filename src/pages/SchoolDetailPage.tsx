@@ -288,14 +288,14 @@ export default function SchoolDetailPage() {
     createUserMutation.mutate(form);
   };
 
-  if (isLoading) return <div className="text-center py-12 text-gray-500">Yukleniyor...</div>;
-  if (!school) return <div className="text-center py-12 text-gray-500">Okul bulunamadi</div>;
+  if (isLoading) return <div className="text-center py-12 text-gray-500">Yükleniyor...</div>;
+  if (!school) return <div className="text-center py-12 text-gray-500">Okul bulunamadı</div>;
 
   return (
     <div>
       <Link to="/schools" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
         <ArrowLeft className="w-4 h-4" />
-        Okullara don
+        Okullara dön
       </Link>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
@@ -306,14 +306,14 @@ export default function SchoolDetailPage() {
           </span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div><span className="text-gray-500">Sehir:</span> <span className="font-medium">{school.city || "-"}</span></div>
+          <div><span className="text-gray-500">Şehir:</span> <span className="font-medium">{school.city || "-"}</span></div>
           <div><span className="text-gray-500">Adres:</span> <span className="font-medium">{school.address || "-"}</span></div>
           <div><span className="text-gray-500">Telefon:</span> <span className="font-medium">{school.phone || "-"}</span></div>
           <div><span className="text-gray-500">E-posta:</span> <span className="font-medium">{school.email || "-"}</span></div>
         </div>
       </div>
 
-      <Modal isOpen={showModal} title="Ogretmen Ekle" onClose={() => setShowModal(false)}>
+      <Modal isOpen={showModal} title="Öğretmen Ekle" onClose={() => setShowModal(false)}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Ad *</label>
@@ -346,7 +346,7 @@ export default function SchoolDetailPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sifre *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Şifre *</label>
             <input
               type="password"
               required
@@ -368,7 +368,7 @@ export default function SchoolDetailPage() {
               onClick={() => setShowModal(false)}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
             >
-              Iptal
+              İptal
             </button>
           </div>
         </form>
@@ -379,7 +379,7 @@ export default function SchoolDetailPage() {
         <div className="bg-white rounded-xl border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
             <Users className="w-5 h-5 text-blue-600" />
-            <h2 className="font-semibold text-gray-900">Danismanlar ({advisors?.length || 0})</h2>
+            <h2 className="font-semibold text-gray-900">Danışmanlar ({advisors?.length || 0})</h2>
           </div>
           <div className="divide-y divide-gray-200">
             {advisors?.map((a) => (
@@ -391,7 +391,7 @@ export default function SchoolDetailPage() {
               </div>
             ))}
             {(!advisors || advisors.length === 0) && (
-              <p className="px-6 py-4 text-sm text-gray-500">Danisman atanmamis</p>
+              <p className="px-6 py-4 text-sm text-gray-500">Danışman atanmamış</p>
             )}
           </div>
         </div>
@@ -401,12 +401,12 @@ export default function SchoolDetailPage() {
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-green-600" />
-              <h2 className="font-semibold text-gray-900">Ogretmenler ({teachers?.length || 0})</h2>
+              <h2 className="font-semibold text-gray-900">Öğretmenler ({teachers?.length || 0})</h2>
             </div>
             <button
               onClick={() => setShowModal(true)}
               className="p-1.5 rounded hover:bg-green-50 text-green-600 transition-colors"
-              title="Ogretmen Ekle"
+              title="Öğretmen Ekle"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -422,7 +422,7 @@ export default function SchoolDetailPage() {
               </div>
             ))}
             {(!teachers || teachers.length === 0) && (
-              <p className="px-6 py-4 text-sm text-gray-500">Ogretmen atanmamis</p>
+              <p className="px-6 py-4 text-sm text-gray-500">Öğretmen atanmamış</p>
             )}
           </div>
         </div>
@@ -734,7 +734,7 @@ export default function SchoolDetailPage() {
           className="flex items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
           <FileText className="w-5 h-5 text-blue-600" />
-          Bu okula ait raporlari goruntule
+          Bu okula ait raporları görüntüle
         </Link>
       </div>
     </div>

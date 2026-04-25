@@ -34,7 +34,7 @@ export default function ReportsPage() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-gray-500">Yukleniyor...</div>
+        <div className="text-center py-12 text-gray-500">Yükleniyor...</div>
       ) : (
         <>
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -43,7 +43,7 @@ export default function ReportsPage() {
                 <tr>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Video</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Okul</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Ogretmen</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Öğretmen</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Onaylayan</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Durum</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Tarih</th>
@@ -77,7 +77,7 @@ export default function ReportsPage() {
                 ))}
                 {data?.items.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">Rapor bulunamadi</td>
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">Rapor bulunamadı</td>
                   </tr>
                 )}
               </tbody>

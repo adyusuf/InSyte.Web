@@ -81,11 +81,11 @@ export default function VideoUploadPage() {
     <div>
       <Link to="/videos" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
         <ArrowLeft className="w-4 h-4" />
-        Videolara don
+        Videolara dön
       </Link>
 
       <div className="max-w-2xl">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Video Yukle</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Video Yükle</h1>
 
         <form onSubmit={(e) => uploadMutation.mutate(e)} className="space-y-6">
           {/* Drag and drop area */}
@@ -107,16 +107,16 @@ export default function VideoUploadPage() {
                   onClick={() => setFile(null)}
                   className="mt-2 text-xs text-blue-600 hover:underline"
                 >
-                  Degistir
+                  Değiştir
                 </button>
               </div>
             ) : (
               <div>
                 <Upload className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm font-medium text-gray-900">Video dosyasini surukleyin</p>
+                <p className="text-sm font-medium text-gray-900">Video dosyasını sürükleyin</p>
                 <p className="text-xs text-gray-500 mt-1">veya</p>
                 <label className="inline-block mt-2">
-                  <span className="text-sm text-blue-600 hover:underline cursor-pointer">dosya secin</span>
+                  <span className="text-sm text-blue-600 hover:underline cursor-pointer">dosya seçin</span>
                   <input
                     type="file"
                     accept="video/*"
@@ -131,14 +131,14 @@ export default function VideoUploadPage() {
           {/* Form fields */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Baslik *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Başlık *</label>
               <input
                 type="text"
                 required
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Video basligi"
+                placeholder="Video başlığı"
               />
             </div>
 
@@ -151,7 +151,7 @@ export default function VideoUploadPage() {
                   onChange={(e) => setForm({ ...form, schoolId: e.target.value, teacherId: "" })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Okul secin</option>
+                  <option value="">Okul seçin</option>
                   {schools?.items.map((school) => (
                     <option key={school.id} value={school.id}>
                       {school.name}
@@ -161,7 +161,7 @@ export default function VideoUploadPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Ogretmen *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Öğretmen *</label>
                 <select
                   required
                   value={form.teacherId}
@@ -169,7 +169,7 @@ export default function VideoUploadPage() {
                   disabled={!form.schoolId}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
                 >
-                  <option value="">Ogretmen secin</option>
+                  <option value="">Öğretmen seçin</option>
                   {teachers?.items.map((teacher) => (
                     <option key={teacher.id} value={teacher.id}>
                       {teacher.firstName} {teacher.lastName}
@@ -198,20 +198,20 @@ export default function VideoUploadPage() {
               disabled={uploadMutation.isPending || !file}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              {uploadMutation.isPending ? "Yukleniyor..." : "Yukle"}
+              {uploadMutation.isPending ? "Yükleniyor..." : "Yükle"}
             </button>
             <button
               type="button"
               onClick={() => navigate("/videos")}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
             >
-              Iptal
+              İptal
             </button>
           </div>
 
           {uploadMutation.isError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-700">{(uploadMutation.error as any)?.message || "Bir hata olustu"}</p>
+              <p className="text-sm text-red-700">{(uploadMutation.error as any)?.message || "Bir hata oluştu"}</p>
             </div>
           )}
         </form>

@@ -73,17 +73,17 @@ export default function TeachersPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Ogretmenler</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Öğretmenler</h1>
         <button
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Yeni Ogretmen
+          Yeni Öğretmen
         </button>
       </div>
 
-      <Modal isOpen={showModal} title="Yeni Ogretmen Ekle" onClose={() => setShowModal(false)}>
+      <Modal isOpen={showModal} title="Yeni Öğretmen Ekle" onClose={() => setShowModal(false)}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Ad *</label>
@@ -119,14 +119,14 @@ export default function TeachersPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sifre *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Şifre *</label>
             <input
               type="password"
               required
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Sifre"
+              placeholder="Şifre"
             />
           </div>
           <div>
@@ -136,7 +136,7 @@ export default function TeachersPage() {
               onChange={(e) => setForm({ ...form, schoolId: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Okul secin</option>
+              <option value="">Okul seçin</option>
               {schools?.items.map((school) => (
                 <option key={school.id} value={school.id}>
                   {school.name}
@@ -157,18 +157,18 @@ export default function TeachersPage() {
               onClick={() => setShowModal(false)}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
             >
-              Iptal
+              İptal
             </button>
           </div>
         </form>
       </Modal>
 
       <div className="mb-4 max-w-md">
-        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Ogretmen ara..." />
+        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Öğretmen ara..." />
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-gray-500">Yukleniyor...</div>
+        <div className="text-center py-12 text-gray-500">Yükleniyor...</div>
       ) : (
         <>
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -178,7 +178,7 @@ export default function TeachersPage() {
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Ad Soyad</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">E-posta</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Durum</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Kayit Tarihi</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Kayıt Tarihi</th>
                   <th className="px-6 py-3"></th>
                 </tr>
               </thead>
@@ -206,7 +206,7 @@ export default function TeachersPage() {
                 ))}
                 {data?.items.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">Ogretmen bulunamadi</td>
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">Öğretmen bulunamadı</td>
                   </tr>
                 )}
               </tbody>

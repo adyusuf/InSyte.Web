@@ -226,24 +226,24 @@ export default function SchoolsPage() {
           className="space-y-4"
         >
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Okul Adi *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Okul Adı *</label>
             <input
               type="text"
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Okul adi girin"
+              placeholder="Okul adı girin"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sehir</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Şehir</label>
             <input
               type="text"
               value={form.city}
               onChange={(e) => setForm({ ...form, city: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Sehir"
+              placeholder="Şehir"
             />
           </div>
           <div>
@@ -337,7 +337,7 @@ export default function SchoolsPage() {
                     className="hidden"
                   />
                   <span className="px-3 py-2 border border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50 block text-center">
-                    {form.logoFile ? form.logoFile.name : "Dosya secin"}
+                    {form.logoFile ? form.logoFile.name : "Dosya seçin"}
                   </span>
                 </label>
               </div>
@@ -391,7 +391,7 @@ export default function SchoolsPage() {
               onClick={() => setShowModal(false)}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
             >
-              Iptal
+              İptal
             </button>
           </div>
         </form>
@@ -402,17 +402,17 @@ export default function SchoolsPage() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-gray-500">Yukleniyor...</div>
+        <div className="text-center py-12 text-gray-500">Yükleniyor...</div>
       ) : (
         <>
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Okul Adi</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Sehir</th>
-                  <th className="text-center px-6 py-3 text-xs font-medium text-gray-500 uppercase">Danismanlar</th>
-                  <th className="text-center px-6 py-3 text-xs font-medium text-gray-500 uppercase">Ogretmenler</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Okul Adı</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Şehir</th>
+                  <th className="text-center px-6 py-3 text-xs font-medium text-gray-500 uppercase">Danışmanlar</th>
+                  <th className="text-center px-6 py-3 text-xs font-medium text-gray-500 uppercase">Öğretmenler</th>
                   <th className="text-center px-6 py-3 text-xs font-medium text-gray-500 uppercase">Videolar</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Durum</th>
                 </tr>
@@ -454,7 +454,7 @@ export default function SchoolsPage() {
                 {data?.items.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                      Okul bulunamadi
+                      Okul bulunamadı
                     </td>
                   </tr>
                 )}
