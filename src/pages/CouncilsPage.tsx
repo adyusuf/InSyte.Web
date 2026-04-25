@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Plus, Edit2, Trash2, Users, X } from "lucide-react";
 import api from "../lib/api";
+
+const councilSchema = z.object({
+  name: z.string().min(2, "Ad en az 2 karakter olmalı").max(100, "Ad en fazla 100 karakter olabilir"),
+  description: z.string().max(500, "Açıklama en fazla 500 karakter olabilir").optional().or(z.literal("")),
+});
 
 interface Council {
   id: string;
@@ -29,9 +37,13 @@ export default function CouncilsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: "", description: "" });
   const [showMembersModal, setShowMembersModal] = useState<string | null>(null);
   const [members, setMembers] = useState<CouncilMember[]>([]);
+
+  const form = useForm({
+    resolver: zodResolver(councilSchema),
+    defaultValues: { name: "", description: "" },
+  });
 
   const { data: councils, isLoading } = useQuery({
     queryKey: ["councils"],
@@ -42,26 +54,26 @@ export default function CouncilsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/councils/${id}`),
+    mutationFn: (id: string) => api.delete(`/v1/councils/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["councils"] }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: typeof formData }) =>
-      api.put(`/councils/${id}`, data),
+    mutationFn: ({ id, data }: { id: string; data: z.infer<typeof councilSchema> }) =>
+      api.put(`/v1/councils/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["councils"] });
       setEditingId(null);
-      setFormData({ name: "", description: "" });
+      form.reset();
       setShowForm(false);
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: typeof formData) => api.post("/councils", data),
+    mutationFn: (data: z.infer<typeof councilSchema>) => api.post("/v1/councils", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["councils"] });
-      setFormData({ name: "", description: "" });
+      form.reset();
       setShowForm(false);
     },
   });
@@ -70,18 +82,17 @@ export default function CouncilsPage() {
     c.name.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const handleAddOrUpdateCouncil = async () => {
-    if (!formData.name.trim()) return;
+  const handleAddOrUpdateCouncil = async (data: z.infer<typeof councilSchema>) => {
     if (editingId) {
-      await updateMutation.mutateAsync({ id: editingId, data: formData });
+      await updateMutation.mutateAsync({ id: editingId, data });
     } else {
-      await createMutation.mutateAsync(formData);
+      await createMutation.mutateAsync(data);
     }
   };
 
   const handleEditCouncil = (council: Council) => {
     setEditingId(council.id);
-    setFormData({ name: council.name, description: council.description || "" });
+    form.reset({ name: council.name, description: council.description || "" });
     setShowForm(true);
   };
 
@@ -93,7 +104,7 @@ export default function CouncilsPage() {
 
   const handleViewMembers = async (councilId: string) => {
     try {
-      const response = await api.get(`/councils/${councilId}/members`);
+      const response = await api.get(`/v1/councils/${councilId}/members`);
       setMembers(response.data.data || []);
       setShowMembersModal(councilId);
     } catch (err) {
@@ -104,11 +115,26 @@ export default function CouncilsPage() {
   const handleRemoveMember = async (councilId: string, memberId: string) => {
     if (window.confirm("Bu üyeyi kuruldan kaldırmak istediğinizden emin misiniz?")) {
       try {
-        await api.delete(`/councils/${councilId}/members/${memberId}`);
+        await api.delete(`/v1/councils/${councilId}/members/${memberId}`);
         setMembers(members.filter(m => m.id !== memberId));
       } catch (err) {
         console.error("Error removing member:", err);
       }
+    }
+  };
+
+  const handleAddMember = async (councilId: string, userId: string) => {
+    if (!userId.trim()) return;
+    try {
+      await api.post(`/v1/councils/${councilId}/members`, {
+        userId,
+        role: "Üye"
+      });
+      // Refresh members list
+      const response = await api.get(`/v1/councils/${councilId}/members`);
+      setMembers(response.data.data || []);
+    } catch (err) {
+      console.error("Error adding member:", err);
     }
   };
 
@@ -135,39 +161,50 @@ export default function CouncilsPage() {
       {showForm && (
         <div className="bg-white p-4 rounded-lg border border-gray-200 space-y-4">
           <h2 className="text-lg font-semibold">{editingId ? "Kurulu Düzenle" : "Yeni Kurul Ekle"}</h2>
-          <input
-            type="text"
-            placeholder="Kurul Adı"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          />
-          <textarea
-            placeholder="Açıklama (isteğe bağlı)"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            rows={3}
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={handleAddOrUpdateCouncil}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-            >
-              {editingId ? "Güncelle" : "Ekle"}
-            </button>
-            <button
-              onClick={() => {
-                setShowForm(false);
-                setEditingId(null);
-                setFormData({ name: "", description: "" });
-              }}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
-            >
-              İptal
-            </button>
-          </div>
+          <form onSubmit={form.handleSubmit(handleAddOrUpdateCouncil)} className="space-y-4">
+            <div>
+              <input
+                type="text"
+                placeholder="Kurul Adı"
+                {...form.register("name")}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+              {form.formState.errors.name && (
+                <p className="text-red-500 text-sm mt-1">{form.formState.errors.name.message}</p>
+              )}
+            </div>
+            <div>
+              <textarea
+                placeholder="Açıklama (isteğe bağlı)"
+                {...form.register("description")}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                rows={3}
+              />
+              {form.formState.errors.description && (
+                <p className="text-red-500 text-sm mt-1">{form.formState.errors.description.message}</p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                {editingId ? "Güncelle" : "Ekle"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingId(null);
+                  form.reset();
+                }}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+              >
+                İptal
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -228,7 +265,7 @@ export default function CouncilsPage() {
       {/* Members Modal */}
       {showMembersModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 max-h-96 overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-96 max-h-[600px] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Kurul Üyeleri</h2>
               <button
@@ -238,6 +275,26 @@ export default function CouncilsPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Add Member Form */}
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <h3 className="text-sm font-semibold mb-2">Üye Ekle</h3>
+              <input
+                type="text"
+                id="userId"
+                placeholder="Kullanıcı ID veya E-posta"
+                className="w-full px-2 py-2 border border-gray-300 rounded text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.target as HTMLInputElement).value) {
+                    handleAddMember(showMembersModal, (e.target as HTMLInputElement).value);
+                    (e.target as HTMLInputElement).value = "";
+                  }
+                }}
+              />
+              <p className="text-xs text-gray-500 mt-1">Enter tuşuna basarak ekle</p>
+            </div>
+
+            {/* Members List */}
             <div className="space-y-2">
               {members.length === 0 ? (
                 <p className="text-gray-500 text-sm">Kurul üyesi yok</p>
