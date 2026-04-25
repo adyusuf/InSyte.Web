@@ -138,21 +138,26 @@ export default function WorkingGroupsPage() {
     }
   };
 
-  if (isLoading) return <div>Yukleniyor...</div>;
+  if (isLoading) return (
+    <div className="flex items-center justify-center py-16" role="status" aria-label="Yükleniyor">
+      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Çalisma Gruplari</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Çalışma Grupları</h1>
           <p className="text-gray-600">Okul içindeki çalışma gruplarını yönet</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          aria-label="Yeni çalışma grubu ekle"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4" aria-hidden="true" />
           Yeni Grup Ekle
         </button>
       </div>
@@ -209,12 +214,14 @@ export default function WorkingGroupsPage() {
       )}
 
       {/* Search */}
+      <label htmlFor="group-search" className="sr-only">Grup ara</label>
       <input
-        type="text"
+        id="group-search"
+        type="search"
         placeholder="Grup ara..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
 
       {/* Groups List */}
@@ -237,24 +244,27 @@ export default function WorkingGroupsPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => handleViewMembers(group.id)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label={`${group.name} üyelerini yönet`}
                   title="Üyeleri Yönet"
                 >
-                  <Users className="w-4 h-4" />
+                  <Users className="w-4 h-4" aria-hidden="true" />
                 </button>
                 <button
                   onClick={() => handleEditGroup(group)}
-                  className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg"
+                  className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  aria-label={`${group.name} grubunu düzenle`}
                   title="Düzenle"
                 >
-                  <Edit2 className="w-4 h-4" />
+                  <Edit2 className="w-4 h-4" aria-hidden="true" />
                 </button>
                 <button
                   onClick={() => handleDeleteGroup(group.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  aria-label={`${group.name} grubunu sil`}
                   title="Sil"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -270,9 +280,10 @@ export default function WorkingGroupsPage() {
               <h2 className="text-lg font-semibold">Grup Üyeleri</h2>
               <button
                 onClick={() => setShowMembersModal(null)}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1 hover:bg-gray-100 rounded focus:outline-none focus:ring-2 focus:ring-gray-400"
+                aria-label="Modalı kapat"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
