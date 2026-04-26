@@ -140,26 +140,6 @@ const schema = z.object({
 });
 ```
 
-## Çalışma Grupları & Kurullar Yönetimi
-
-**Sayfalar:**
-- `pages/WorkingGroupsPage.tsx` — grup liste + CRUD + üye yönetimi
-- `pages/CouncilsPage.tsx` — kurul liste + CRUD + üye yönetimi
-
-**Özellikler:**
-- React Hook Form + Zod validasyonu (ad min 2, max 100 karakter)
-- TanStack Query state management
-- Member modal: ekle (input field + Enter) / sil (confirmation)
-- Search + pagination
-- Edit/delete işlemleri modal-moda
-
-**Pattern:**
-```tsx
-const form = useForm({
-  resolver: zodResolver(workingGroupSchema),
-  defaultValues: { name: "", description: "" },
-});
-```
 
 ## Yetki kontrolü (UI)
 

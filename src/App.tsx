@@ -16,8 +16,6 @@ import SettingsPage from "./pages/SettingsPage";
 import AISettingsPage from "./pages/AISettingsPage";
 import CriteriaPage from "./pages/CriteriaPage";
 import QuestionsPage from "./pages/QuestionsPage";
-import WorkingGroupsPage from "./pages/WorkingGroupsPage";
-import CouncilsPage from "./pages/CouncilsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,22 +66,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="working-groups"
-          element={
-            <ProtectedRoute>
-              <WorkingGroupsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="councils"
-          element={
-            <ProtectedRoute>
-              <CouncilsPage />
-            </ProtectedRoute>
-          }
-        />
+
         <Route
           path="settings"
           element={

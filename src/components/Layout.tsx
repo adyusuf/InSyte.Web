@@ -19,8 +19,6 @@ const navItems = [
   { path: "/teachers", label: "Öğretmenler", icon: Users, roles: ["Admin", "Advisor", "SchoolAdmin", "Teacher"] },
   { path: "/videos", label: "Videolar", icon: FileVideo, roles: ["Admin", "Advisor", "SchoolAdmin", "Teacher"] },
   { path: "/reports", label: "Raporlar", icon: FileText, roles: ["Admin", "Advisor", "SchoolAdmin", "Teacher"] },
-  { path: "/working-groups", label: "Çalışma Grupları", icon: Users, roles: ["Admin", "SchoolAdmin"] },
-  { path: "/councils", label: "Kurullar", icon: Users, roles: ["Admin", "SchoolAdmin"] },
   { path: "/team", label: "Ekip", icon: UserCog, roles: ["Admin"] },
   { path: "/settings", label: "Tanimlar", icon: Settings, roles: ["Admin"] },
 ];
