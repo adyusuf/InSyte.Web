@@ -33,7 +33,7 @@ api.interceptors.response.use(
       const refreshToken = tokenStorage.getRefresh();
       if (refreshToken) {
         try {
-          const res = await axios.post(`${BASE_URL}/v1/auth/refresh`, { refreshToken });
+          const res = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
           const newToken = res.data.data.accessToken;
           tokenStorage.setAccess(newToken);
           error.config.headers.Authorization = `Bearer ${newToken}`;

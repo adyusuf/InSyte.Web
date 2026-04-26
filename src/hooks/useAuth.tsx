@@ -19,7 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = tokenStorage.getAccess();
     if (token) {
       api
-        .get("/v1/auth/me")
+        .get("/auth/me")
         .then((res) => setUser(res.data.data))
         .catch(() => tokenStorage.clear())
         .finally(() => setLoading(false));
@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await api.post("/v1/auth/login", { email, password });
+    const res = await api.post("/auth/login", { email, password });
     const { accessToken, refreshToken, user: loggedInUser } = res.data.data;
     tokenStorage.setAccess(accessToken);
     tokenStorage.setRefresh(refreshToken);
