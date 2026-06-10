@@ -18,7 +18,7 @@ export default function TeamPage() {
     queryFn: () =>
       api
         .get<ApiResponse<PagedResult<User>>>("/users", {
-          params: { search, page, pageSize: 20 },
+          params: { search, page, pageSize: 20, roles: ["Admin", "Advisor"] },
         })
         .then((r) => r.data.data!),
   });
@@ -41,13 +41,13 @@ export default function TeamPage() {
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
         >
           {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          {showForm ? "İptal" : "Yeni Kullanıcı"}
+          {showForm ? "İptal" : "Yeni Üye"}
         </button>
       </div>
 
       {showForm && (
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Yeni Kullanıcı Ekle</h2>
+          <h2 className="text-lg font-semibold mb-4">Yeni Ekip Üyesi Ekle</h2>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -79,10 +79,8 @@ export default function TeamPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
               <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="Admin">Admin</option>
+                <option value="Admin">Yönetici</option>
                 <option value="Advisor">Danışman</option>
-                <option value="SchoolAdmin">Okul Yöneticisi</option>
-                <option value="Teacher">Öğretmen</option>
               </select>
             </div>
             <div className="flex items-end">
@@ -96,7 +94,7 @@ export default function TeamPage() {
       )}
 
       <div className="mb-4 max-w-md">
-        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Kullanıcı ara..." />
+        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Ekip üyesi ara..." />
       </div>
 
       {isLoading ? (
@@ -121,7 +119,7 @@ export default function TeamPage() {
                     <td className="px-6 py-4 text-sm text-gray-500">{user.email}</td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                        {user.role === "Admin" ? "Yönetici" : user.role === "Advisor" ? "Danışman" : user.role === "SchoolAdmin" ? "Okul Yöneticisi" : "Öğretmen"}
+                        {user.role === "Admin" ? "Yönetici" : "Danışman"}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -136,7 +134,7 @@ export default function TeamPage() {
                 ))}
                 {data?.items.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">Kullanıcı bulunamadı</td>
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">Ekip üyesi bulunamadı</td>
                   </tr>
                 )}
               </tbody>

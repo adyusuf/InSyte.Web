@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../lib/api";
-import { Video, Evaluation, Criteria, AIModel, ApiResponse, PagedResult } from "../types";
+import { Video, Evaluation, Criteria, AIModel, AIProvider, ApiResponse, PagedResult } from "../types";
 import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
 import { ArrowLeft, Plus } from "lucide-react";
@@ -41,7 +41,7 @@ export default function VideoDetailPage() {
     queryKey: ["ai-models"],
     queryFn: async () => {
       const providers = await api
-        .get<ApiResponse<any[]>>("/ai-providers")
+        .get<ApiResponse<AIProvider[]>>("/ai-providers")
         .then((r) => r.data.data!);
 
       const allModels: AIModel[] = [];

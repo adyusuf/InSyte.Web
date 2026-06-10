@@ -11,16 +11,22 @@ import {
   Menu,
   X,
   Home,
+  BookOpen,
+  CalendarDays,
+  GraduationCap,
 } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
   { path: "/schools", label: "Okullar", icon: School, roles: ["Admin", "Advisor", "SchoolAdmin", "Teacher"] },
   { path: "/teachers", label: "Öğretmenler", icon: Users, roles: ["Admin", "Advisor", "SchoolAdmin", "Teacher"] },
+  { path: "/classes", label: "Sınıflar", icon: GraduationCap, roles: ["Admin", "Advisor", "SchoolAdmin"] },
+  { path: "/subjects", label: "Dersler", icon: BookOpen, roles: ["Admin", "Advisor", "SchoolAdmin"] },
+  { path: "/schedules", label: "Ders Programı", icon: CalendarDays, roles: ["Admin", "Advisor", "SchoolAdmin", "Teacher"] },
   { path: "/videos", label: "Videolar", icon: FileVideo, roles: ["Admin", "Advisor", "SchoolAdmin", "Teacher"] },
   { path: "/reports", label: "Raporlar", icon: FileText, roles: ["Admin", "Advisor", "SchoolAdmin", "Teacher"] },
   { path: "/team", label: "Ekip", icon: UserCog, roles: ["Admin"] },
-  { path: "/settings", label: "Tanimlar", icon: Settings, roles: ["Admin"] },
+  { path: "/settings", label: "Tanımlar", icon: Settings, roles: ["Admin"] },
 ];
 
 export default function Layout() {

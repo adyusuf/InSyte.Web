@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import api from "../lib/api";
-import { Video, ApiResponse, PagedResult } from "../types";
+import { Video, School, ApiResponse, PagedResult } from "../types";
 import SearchInput from "../components/SearchInput";
 import Pagination from "../components/Pagination";
 import StatusBadge from "../components/StatusBadge";
@@ -11,13 +11,21 @@ import { Plus } from "lucide-react";
 export default function VideosPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [schoolFilter, setSchoolFilter] = useState("");
+
+  const { data: schools } = useQuery({
+    queryKey: ["schools-all"],
+    queryFn: () =>
+      api.get<ApiResponse<PagedResult<School>>>("/schools", { params: { pageSize: 100 } })
+        .then((r) => r.data.data!),
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["videos", search, page],
+    queryKey: ["videos", schoolFilter, search, page],
     queryFn: () =>
       api
         .get<ApiResponse<PagedResult<Video>>>("/videos", {
-          params: { search, page, pageSize: 20 },
+          params: { schoolId: schoolFilter || undefined, search, page, pageSize: 20 },
         })
         .then((r) => r.data.data!),
   });
@@ -40,8 +48,20 @@ export default function VideosPage() {
         </Link>
       </div>
 
-      <div className="mb-4 max-w-md">
-        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Video ara..." />
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="w-48">
+          <select
+            value={schoolFilter}
+            onChange={(e) => { setSchoolFilter(e.target.value); setPage(1); }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Tüm Okullar</option>
+            {schools?.items.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        <div className="flex-1 max-w-xs">
+          <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Video ara..." />
+        </div>
       </div>
 
       {isLoading ? (

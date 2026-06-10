@@ -11,19 +11,10 @@ import { Plus } from "lucide-react";
 export default function TeachersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [schoolFilter, setSchoolFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", firstName: "", lastName: "", schoolId: "" });
   const queryClient = useQueryClient();
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["teachers", search, page],
-    queryFn: () =>
-      api
-        .get<ApiResponse<PagedResult<User>>>("/teachers", {
-          params: { search, page, pageSize: 20 },
-        })
-        .then((r) => r.data.data!),
-  });
 
   const { data: schools } = useQuery({
     queryKey: ["schools-all"],
@@ -33,12 +24,22 @@ export default function TeachersPage() {
         .then((r) => r.data.data!),
   });
 
+  const { data, isLoading } = useQuery({
+    queryKey: ["teachers", schoolFilter, search, page],
+    queryFn: () =>
+      api
+        .get<ApiResponse<PagedResult<User>>>("/teachers", {
+          params: { schoolId: schoolFilter || undefined, search, page, pageSize: 20 },
+        })
+        .then((r) => r.data.data!),
+  });
+
   const createUserMutation = useMutation({
     mutationFn: (data: Omit<typeof form, "schoolId">) =>
-      api.post("/users", { ...data, role: "Teacher" as UserRole }),
-    onSuccess: (res: any) => {
+      api.post<{ data?: { id?: string }; id?: string }>("/users", { ...data, role: "Teacher" as UserRole }),
+    onSuccess: (res) => {
       if (form.schoolId) {
-        assignToSchool(res.data.data?.id || res.data?.id);
+        assignToSchool(res.data.data?.id || res.data?.id || "");
       } else {
         queryClient.invalidateQueries({ queryKey: ["teachers"] });
         setShowModal(false);
@@ -66,8 +67,12 @@ export default function TeachersPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const { schoolId, ...userData } = form;
-    createUserMutation.mutate(userData);
+    createUserMutation.mutate({
+      email: form.email,
+      password: form.password,
+      firstName: form.firstName,
+      lastName: form.lastName,
+    });
   };
 
   return (
@@ -163,8 +168,20 @@ export default function TeachersPage() {
         </form>
       </Modal>
 
-      <div className="mb-4 max-w-md">
-        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Öğretmen ara..." />
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="w-48">
+          <select
+            value={schoolFilter}
+            onChange={(e) => { setSchoolFilter(e.target.value); setPage(1); }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Tüm Okullar</option>
+            {schools?.items.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        <div className="flex-1 max-w-xs">
+          <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Öğretmen ara..." />
+        </div>
       </div>
 
       {isLoading ? (

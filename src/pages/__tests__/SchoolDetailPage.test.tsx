@@ -27,8 +27,8 @@ function makeSchool(overrides: Partial<School> = {}): School {
 
 function makeTeacher(overrides: Partial<SchoolTeacher> = {}): SchoolTeacher {
   return {
-    id: 'u-1', firstName: 'Ahmet', lastName: 'Yılmaz',
-    email: 'ahmet@test.com', role: 'Teacher', isActive: true,
+    id: 'u-1', userId: 'user-1', firstName: 'Ahmet', lastName: 'Yılmaz',
+    email: 'ahmet@test.com', role: 'Teacher', assignedAt: '2025-01-01T00:00:00Z',
     ...overrides,
   };
 }

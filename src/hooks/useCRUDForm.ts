@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import api from "../lib/api";
+
+type ApiError = AxiosError<{ message?: string }>;
 
 interface UseCRUDFormConfig<T> {
   endpoint: string;
@@ -9,7 +12,7 @@ interface UseCRUDFormConfig<T> {
   validate?: (data: T) => Record<string, string>;
 }
 
-export function useCRUDForm<T extends Record<string, any>>(
+export function useCRUDForm<T extends Record<string, unknown>>(
   initialForm: T,
   config: UseCRUDFormConfig<T>
 ) {
@@ -25,7 +28,7 @@ export function useCRUDForm<T extends Record<string, any>>(
       resetForm();
       config.onSuccess?.();
     },
-    onError: (err: any) => {
+    onError: (err: ApiError) => {
       setErrors({ submit: err.response?.data?.message || "Hata oluştu" });
     },
   });
@@ -38,7 +41,7 @@ export function useCRUDForm<T extends Record<string, any>>(
       resetForm();
       config.onSuccess?.();
     },
-    onError: (err: any) => {
+    onError: (err: ApiError) => {
       setErrors({ submit: err.response?.data?.message || "Hata oluştu" });
     },
   });

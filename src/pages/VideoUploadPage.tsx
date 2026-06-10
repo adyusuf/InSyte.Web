@@ -211,7 +211,7 @@ export default function VideoUploadPage() {
 
           {uploadMutation.isError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-700">{(uploadMutation.error as any)?.message || "Bir hata oluştu"}</p>
+              <p className="text-sm text-red-700">{uploadMutation.error?.message || "Bir hata oluştu"}</p>
             </div>
           )}
         </form>

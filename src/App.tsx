@@ -16,12 +16,16 @@ import SettingsPage from "./pages/SettingsPage";
 import AISettingsPage from "./pages/AISettingsPage";
 import CriteriaPage from "./pages/CriteriaPage";
 import QuestionsPage from "./pages/QuestionsPage";
+import ClassesPage from "./pages/ClassesPage";
+import SubjectsPage from "./pages/SubjectsPage";
+import SchedulesPage from "./pages/SchedulesPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 dakika — gereksiz refetch'i önler
     },
   },
 });
@@ -54,6 +58,9 @@ function AppRoutes() {
         <Route path="schools" element={<SchoolsPage />} />
         <Route path="schools/:id" element={<SchoolDetailPage />} />
         <Route path="teachers" element={<TeachersPage />} />
+        <Route path="classes" element={<ClassesPage />} />
+        <Route path="subjects" element={<SubjectsPage />} />
+        <Route path="schedules" element={<SchedulesPage />} />
         <Route path="videos" element={<VideosPage />} />
         <Route path="videos/upload" element={<VideoUploadPage />} />
         <Route path="videos/:id" element={<VideoDetailPage />} />

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { renderWithProviders, screen, waitFor } from '../../test/utils';
+import { renderWithProviders, screen } from '../../test/utils';
 import VideoDetailPage from '../VideoDetailPage';
 import type { Video, Evaluation } from '../../types';
 
@@ -21,9 +21,9 @@ vi.mock('react-router-dom', async () => {
 
 function makeVideo(overrides: Partial<Video> = {}): Video {
   return {
-    id: 'v-1', title: 'Matematik Dersi', filePath: '/uploads/math.mp4',
+    id: 'v-1', title: 'Matematik Dersi', originalFileName: 'math.mp4',
     fileSize: 52428800, schoolId: 's-1', teacherUserId: 'u-1',
-    uploadedByUserId: 'u-1', status: 'Uploaded',
+    status: 'Uploaded',
     schoolName: 'Anadolu Lisesi', teacherName: 'Ahmet Yılmaz',
     evaluationCount: 0, createdAt: '2025-01-01T00:00:00Z',
     ...overrides,
@@ -32,7 +32,7 @@ function makeVideo(overrides: Partial<Video> = {}): Video {
 
 function makeEvaluation(overrides: Partial<Evaluation> = {}): Evaluation {
   return {
-    id: 'e-1', videoId: 'v-1', criteriaId: 'cr-1', aiModelId: 'm-1',
+    id: 'e-1', videoId: 'v-1', videoTitle: 'Matematik Dersi', criteriaId: 'cr-1', aiModelId: 'm-1',
     criteriaName: 'Sınıf Yönetimi', aiModelName: 'GPT-4o',
     status: 'Completed', tokenUsageInput: 1000, tokenUsageOutput: 500,
     createdAt: '2025-01-01T00:00:00Z',

@@ -1,7 +1,7 @@
 export type UserRole = "Admin" | "Advisor" | "SchoolAdmin" | "Teacher";
 export type VideoStatus = "Uploaded" | "Processing" | "Evaluated" | "Approved" | "Rejected";
 export type EvaluationStatus = "Pending" | "Processing" | "Completed" | "Failed";
-export type ReportStatus = "Draft" | "Approved" | "Sent";
+export type ReportStatus = "Draft" | "Approved" | "Sent" | "Rejected";
 export type RecipientType = "Principal" | "Teacher" | "Advisor" | "Other";
 export type SchoolType = "Anaokulu" | "Ilkokul" | "Ortaokul" | "Lise" | "UniversitePrepare" | "Universitesi" | "Meslek";
 export type InstitutionType = "Devlet" | "Ozel" | "Vakif";

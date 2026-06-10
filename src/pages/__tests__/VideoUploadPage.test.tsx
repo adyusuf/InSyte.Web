@@ -35,7 +35,7 @@ function makeTeacher(overrides: Partial<User> = {}): User {
   return {
     id: 'u-1', email: 'ahmet@test.com',
     firstName: 'Ahmet', lastName: 'Yılmaz',
-    role: 'Teacher', isActive: true,
+    role: 'Teacher', isActive: true, createdAt: '2025-01-01T00:00:00Z',
     ...overrides,
   };
 }
