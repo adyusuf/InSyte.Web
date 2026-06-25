@@ -36,6 +36,10 @@ api.interceptors.response.use(
           const res = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
           const newToken = res.data.data.accessToken;
           tokenStorage.setAccess(newToken);
+          // Rotasyon: API her yenilemede yeni refresh token döndürür, eskisi iptal olur.
+          if (res.data.data.refreshToken) {
+            tokenStorage.setRefresh(res.data.data.refreshToken);
+          }
           error.config.headers.Authorization = `Bearer ${newToken}`;
           return api(error.config);
         } catch {
