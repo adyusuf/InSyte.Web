@@ -85,29 +85,24 @@ export const AI_PROVIDER_DEFAULT_BASE_URL: Partial<Record<AIProviderType, string
   lmstudio: "http://localhost:1234/v1",
 };
 
-// Modele göre değerlendirme rolü — modalite-bazlı uzman + sentez mimarisi.
+// Modele göre değerlendirme modalitesi — yalnızca NATIVE modeller.
+// (Kare-kare okuyan veya yalnızca metin/transkript işleyen modeller tanımlanmaz.)
 export const AI_MODEL_ROLES = {
-  MULTIMODAL: "Multimodal",
-  VIDEO: "Video",
+  AUDIO_VIDEO: "AudioVideo",
   AUDIO: "Audio",
-  TRANSCRIPT: "Transcript",
-  SYNTHESIS: "Synthesis",
+  VIDEO: "Video",
 } as const;
 
 export type AIModelRole = typeof AI_MODEL_ROLES[keyof typeof AI_MODEL_ROLES];
 
 export const AI_MODEL_ROLE_OPTIONS: { value: AIModelRole; label: string }[] = [
-  { value: "Multimodal", label: "Multimodal (video+ses birlikte)" },
-  { value: "Video", label: "Video (hareket/beden dili)" },
-  { value: "Audio", label: "Ses (ton/tempo/netlik)" },
-  { value: "Transcript", label: "Transkript (ses→metin)" },
-  { value: "Synthesis", label: "Sentez (birleştirme)" },
+  { value: "AudioVideo", label: "Ses + Video (native — ikisi birden)" },
+  { value: "Audio", label: "Ses (native)" },
+  { value: "Video", label: "Video (native — görüntü)" },
 ];
 
 export const AI_MODEL_ROLE_LABEL: Record<string, string> = {
-  Multimodal: "🎬🔊 Multimodal",
-  Video: "🎬 Video",
+  AudioVideo: "🎬🔊 Ses+Video",
   Audio: "🔊 Ses",
-  Transcript: "📝 Transkript",
-  Synthesis: "🧩 Sentez",
+  Video: "🎬 Video",
 };

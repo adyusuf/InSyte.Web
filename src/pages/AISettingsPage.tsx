@@ -10,7 +10,7 @@ type ProviderForm = { name: string; provider: string; apiKey: string; baseUrl: s
 type ModelForm = { name: string; modelId: string; maxTokens: number; contextWindow: string; supportsMemory: boolean; role: string };
 
 const EMPTY_PROVIDER: ProviderForm = { name: "", provider: "openai", apiKey: "", baseUrl: "" };
-const EMPTY_MODEL: ModelForm = { name: "", modelId: "", maxTokens: 4096, contextWindow: "", supportsMemory: false, role: "Multimodal" };
+const EMPTY_MODEL: ModelForm = { name: "", modelId: "", maxTokens: 4096, contextWindow: "", supportsMemory: false, role: "AudioVideo" };
 
 const isLocal = (p: string) => AI_PROVIDER_OPTIONS.find((o) => o.value === p)?.local ?? false;
 
@@ -122,7 +122,7 @@ export default function AISettingsPage() {
         maxTokens: model.maxTokens,
         contextWindow: model.contextWindow != null ? String(model.contextWindow) : "",
         supportsMemory: model.supportsMemory,
-        role: model.role || "Multimodal",
+        role: model.role || "AudioVideo",
       });
     } else {
       setEditingModelId(null);
