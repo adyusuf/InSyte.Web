@@ -46,7 +46,7 @@ export default function VideoUploadPage() {
       const formData = new FormData();
       formData.append("title", form.title);
       formData.append("schoolId", form.schoolId);
-      formData.append("teacherId", form.teacherId);
+      formData.append("teacherUserId", form.teacherId);
       formData.append("subject", form.subject);
       formData.append("file", file);
 
