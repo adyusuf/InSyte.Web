@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../lib/api";
 import { School, User, ApiResponse } from "../types";
 import { ArrowLeft, Upload } from "lucide-react";
+import { EvaluationSelector, EvalSelection, EMPTY_EVAL, buildEvaluatePayload } from "../components/EvaluationSelector";
 
 export default function VideoUploadPage() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function VideoUploadPage() {
     teacherId: "",
     subject: "",
   });
+  const [evalSel, setEvalSel] = useState<EvalSelection>(EMPTY_EVAL);
   const [dragActive, setDragActive] = useState(false);
 
   const { data: schools } = useQuery({
@@ -48,9 +50,17 @@ export default function VideoUploadPage() {
       formData.append("subject", form.subject);
       formData.append("file", file);
 
-      return api.post("/videos", formData, {
+      const res = await api.post<ApiResponse<{ id: string }>>("/videos", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+
+      // Yükleme sonrası: seçilen AI modellerine değerlendirmeye gönder
+      const videoId = res.data.data?.id;
+      const payload = buildEvaluatePayload(evalSel);
+      if (videoId && payload) {
+        await api.post(`/videos/${videoId}/evaluate`, payload);
+      }
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["videos"] });
@@ -190,6 +200,9 @@ export default function VideoUploadPage() {
               />
             </div>
           </div>
+
+          {/* AI değerlendirme seçimi */}
+          <EvaluationSelector value={evalSel} onChange={setEvalSel} />
 
           {/* Buttons */}
           <div className="flex gap-3">
