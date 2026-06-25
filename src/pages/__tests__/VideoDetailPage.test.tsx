@@ -34,7 +34,7 @@ function makeEvaluation(overrides: Partial<Evaluation> = {}): Evaluation {
   return {
     id: 'e-1', videoId: 'v-1', videoTitle: 'Matematik Dersi', criteriaId: 'cr-1', aiModelId: 'm-1',
     criteriaName: 'Sınıf Yönetimi', aiModelName: 'GPT-4o',
-    status: 'Completed', tokenUsageInput: 1000, tokenUsageOutput: 500,
+    status: 'Completed', stage: 'Completed', attempt: 1, tokenUsageInput: 1000, tokenUsageOutput: 500,
     createdAt: '2025-01-01T00:00:00Z',
     ...overrides,
   };

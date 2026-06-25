@@ -126,8 +126,11 @@ export interface Evaluation {
   tokenUsageInput: number;
   tokenUsageOutput: number;
   status: EvaluationStatus;
+  stage: string;
+  attempt: number;
   errorMessage?: string;
   createdAt: string;
+  startedAt?: string;
   completedAt?: string;
 }
 

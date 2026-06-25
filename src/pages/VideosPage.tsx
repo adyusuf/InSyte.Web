@@ -28,6 +28,9 @@ export default function VideosPage() {
           params: { schoolId: schoolFilter || undefined, search, page, pageSize: 20 },
         })
         .then((r) => r.data.data!),
+    // İşlenen video varsa listeyi canlı güncelle (5 sn)
+    refetchInterval: (q) =>
+      q.state.data?.items.some((v) => v.status === "Processing") ? 5000 : false,
   });
 
   const formatSize = (bytes: number) => {

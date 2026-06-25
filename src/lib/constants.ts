@@ -106,3 +106,25 @@ export const AI_MODEL_ROLE_LABEL: Record<string, string> = {
   Audio: "🔊 Ses",
   Video: "🎬 Video",
 };
+
+// Değerlendirme aşaması (Hangfire kuyruğu) — canlı takip etiketleri/renkleri.
+export const EVALUATION_STAGE_LABEL: Record<string, string> = {
+  Queued: "Sırada",
+  Uploading: "Yükleniyor",
+  ProviderProcessing: "Sağlayıcı işliyor",
+  Analyzing: "Analiz ediliyor",
+  Completed: "Tamamlandı",
+  Failed: "Başarısız",
+};
+
+export const EVALUATION_STAGE_COLOR: Record<string, string> = {
+  Queued: "bg-gray-100 text-gray-600",
+  Uploading: "bg-blue-100 text-blue-700",
+  ProviderProcessing: "bg-indigo-100 text-indigo-700",
+  Analyzing: "bg-amber-100 text-amber-700",
+  Completed: "bg-green-100 text-green-700",
+  Failed: "bg-red-100 text-red-700",
+};
+
+// İşlem sürüyor mu (polling tetiği için)
+export const EVALUATION_IN_PROGRESS = ["Queued", "Uploading", "ProviderProcessing", "Analyzing"];

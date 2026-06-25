@@ -4,20 +4,18 @@ import api from "../lib/api";
 import { Video, Evaluation, Criteria, AIModel, AIProvider, ApiResponse, PagedResult } from "../types";
 import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
-import { ArrowLeft, Plus } from "lucide-react";
+import { EVALUATION_STAGE_LABEL, EVALUATION_STAGE_COLOR, EVALUATION_IN_PROGRESS } from "../lib/constants";
+import { ArrowLeft, Plus, RefreshCw, Loader2 } from "lucide-react";
 import { useState } from "react";
+
+const anyInProgress = (evals?: Evaluation[]) =>
+  !!evals?.some((e) => EVALUATION_IN_PROGRESS.includes(e.stage));
 
 export default function VideoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ criteriaId: "", aiModelId: "" });
-
-  const { data: video, isLoading } = useQuery({
-    queryKey: ["video", id],
-    queryFn: () =>
-      api.get<ApiResponse<Video>>(`/videos/${id}`).then((r) => r.data.data!),
-  });
 
   const { data: evaluations } = useQuery({
     queryKey: ["evaluations", id],
@@ -27,6 +25,20 @@ export default function VideoDetailPage() {
           params: { videoId: id, pageSize: 100 },
         })
         .then((r) => r.data.data!),
+    // İşlem sürerken canlı güncelle (3 sn). Sayfa sadece okur; işi etkilemez.
+    refetchInterval: (q) => (anyInProgress(q.state.data?.items) ? 3000 : false),
+  });
+
+  const { data: video, isLoading } = useQuery({
+    queryKey: ["video", id],
+    queryFn: () =>
+      api.get<ApiResponse<Video>>(`/videos/${id}`).then((r) => r.data.data!),
+    refetchInterval: anyInProgress(evaluations?.items) ? 3000 : false,
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: (evalId: string) => api.post(`/evaluations/${evalId}/retry`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["evaluations", id] }),
   });
 
   const { data: criteria } = useQuery({
@@ -203,9 +215,24 @@ export default function VideoDetailPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <StatusBadge status={e.status} />
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${EVALUATION_STAGE_COLOR[e.stage] ?? "bg-gray-100 text-gray-600"}`}>
+                      {EVALUATION_IN_PROGRESS.includes(e.stage) && <Loader2 className="w-3 h-3 animate-spin" />}
+                      {EVALUATION_STAGE_LABEL[e.stage] ?? e.stage}
+                    </span>
+                    {e.attempt > 1 && (
+                      <p className="text-xs text-gray-400 mt-1">{e.attempt}. deneme</p>
+                    )}
                     {e.errorMessage && (
-                      <p className="text-xs text-red-600 mt-1">{e.errorMessage}</p>
+                      <p className="text-xs text-red-600 mt-1 max-w-xs break-words">{e.errorMessage}</p>
+                    )}
+                    {e.stage === "Failed" && (
+                      <button
+                        onClick={() => retryMutation.mutate(e.id)}
+                        disabled={retryMutation.isPending}
+                        className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline disabled:opacity-50"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Yeniden Dene
+                      </button>
                     )}
                   </div>
                 </div>
