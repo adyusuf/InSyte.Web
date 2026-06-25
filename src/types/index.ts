@@ -152,6 +152,7 @@ export interface AIProvider {
   isActive: boolean;
   createdAt: string;
   modelCount: number;
+  hasApiKey: boolean;
 }
 
 export interface AIModel {
@@ -161,6 +162,8 @@ export interface AIModel {
   name: string;
   modelId: string;
   maxTokens: number;
+  contextWindow?: number | null;
+  supportsMemory: boolean;
   isActive: boolean;
   createdAt: string;
 }

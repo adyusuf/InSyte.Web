@@ -6,11 +6,15 @@ import type { AIProvider, AIModel } from '../../types';
 
 const apiGetMock = vi.fn();
 const apiPostMock = vi.fn();
+const apiPutMock = vi.fn();
+const apiDeleteMock = vi.fn();
 
 vi.mock('../../lib/api', () => ({
   default: {
     get: (...args: unknown[]) => apiGetMock(...args),
     post: (...args: unknown[]) => apiPostMock(...args),
+    put: (...args: unknown[]) => apiPutMock(...args),
+    delete: (...args: unknown[]) => apiDeleteMock(...args),
   },
 }));
 
@@ -24,6 +28,7 @@ function makeProvider(overrides: Partial<AIProvider> = {}): AIProvider {
   return {
     id: 'p-1', name: 'OpenAI Prod', provider: 'openai',
     isActive: true, createdAt: '2025-01-01T00:00:00Z', modelCount: 2,
+    hasApiKey: true,
     ...overrides,
   };
 }
@@ -32,6 +37,7 @@ function makeModel(overrides: Partial<AIModel> = {}): AIModel {
   return {
     id: 'm-1', aiProviderId: 'p-1', providerName: 'OpenAI Prod',
     name: 'GPT-4o', modelId: 'gpt-4o', maxTokens: 128000,
+    contextWindow: null, supportsMemory: false,
     isActive: true, createdAt: '2025-01-01T00:00:00Z',
     ...overrides,
   };
@@ -40,6 +46,8 @@ function makeModel(overrides: Partial<AIModel> = {}): AIModel {
 beforeEach(() => {
   apiGetMock.mockReset();
   apiPostMock.mockReset();
+  apiPutMock.mockReset();
+  apiDeleteMock.mockReset();
 });
 
 describe('AISettingsPage', () => {
@@ -47,7 +55,7 @@ describe('AISettingsPage', () => {
     apiGetMock.mockResolvedValueOnce({ data: { data: [] } });
     renderWithProviders(<AISettingsPage />);
 
-    expect(await screen.findByText(/AI sistemi tanimlanmamis/i)).toBeInTheDocument();
+    expect(await screen.findByText(/AI sistemi tanımlanmamış/i)).toBeInTheDocument();
   });
 
   it('sağlayıcı listesini ad, provider ve model sayısıyla render eder', async () => {
@@ -73,7 +81,7 @@ describe('AISettingsPage', () => {
     const user = userEvent.setup();
     renderWithProviders(<AISettingsPage />);
 
-    await screen.findByText(/AI sistemi tanimlanmamis/i);
+    await screen.findByText(/AI sistemi tanımlanmamış/i);
     await user.click(screen.getByRole('button', { name: /Ekle/i }));
 
     expect(screen.getByPlaceholderText('Ad')).toBeInTheDocument();
@@ -96,7 +104,7 @@ describe('AISettingsPage', () => {
     expect(screen.getByText(/128/)).toBeInTheDocument();
   });
 
-  it('model yokken "Model tanimlanmamis" gösterir', async () => {
+  it('model yokken "Model tanımlanmamış" gösterir', async () => {
     apiGetMock
       .mockResolvedValueOnce({ data: { data: [makeProvider({ modelCount: 0 })] } })
       .mockResolvedValueOnce({ data: { data: [] } });
@@ -107,7 +115,7 @@ describe('AISettingsPage', () => {
     await screen.findByText('OpenAI Prod');
     await user.click(screen.getByText('OpenAI Prod'));
 
-    expect(await screen.findByText(/Model tanimlanmamis/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Model tanımlanmamış/i)).toBeInTheDocument();
   });
 
   it('provider formu doldurulup kaydet tıklanınca POST gönderir', async () => {
@@ -117,7 +125,7 @@ describe('AISettingsPage', () => {
     const user = userEvent.setup();
     renderWithProviders(<AISettingsPage />);
 
-    await screen.findByText(/AI sistemi tanimlanmamis/i);
+    await screen.findByText(/AI sistemi tanımlanmamış/i);
     await user.click(screen.getByRole('button', { name: /Ekle/i }));
 
     await user.type(screen.getByPlaceholderText('Ad'), 'Yeni Sağlayıcı');
@@ -130,5 +138,68 @@ describe('AISettingsPage', () => {
         expect.objectContaining({ name: 'Yeni Sağlayıcı', apiKey: 'sk-test-key' }),
       );
     });
+  });
+
+  it('form yeni sağlayıcıları (DeepSeek, Ollama) seçenek olarak sunar', async () => {
+    apiGetMock.mockResolvedValueOnce({ data: { data: [] } });
+    const user = userEvent.setup();
+    renderWithProviders(<AISettingsPage />);
+
+    await screen.findByText(/AI sistemi tanımlanmamış/i);
+    await user.click(screen.getByRole('button', { name: /Ekle/i }));
+
+    expect(screen.getByRole('option', { name: 'DeepSeek' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Ollama/i })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Qwen' })).toBeInTheDocument();
+  });
+
+  it('sağlayıcı düzenle tıklanınca PUT gönderir', async () => {
+    apiGetMock.mockResolvedValue({ data: { data: [makeProvider()] } });
+    apiPutMock.mockResolvedValueOnce({ data: { data: {} } });
+    const user = userEvent.setup();
+    renderWithProviders(<AISettingsPage />);
+
+    await screen.findByText('OpenAI Prod');
+    await user.click(screen.getByRole('button', { name: /Sağlayıcıyı düzenle/i }));
+
+    const nameInput = screen.getByPlaceholderText('Ad');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Düzenlendi');
+    await user.click(screen.getByRole('button', { name: /Kaydet/i }));
+
+    await waitFor(() => {
+      expect(apiPutMock).toHaveBeenCalledWith(
+        '/ai-providers/p-1',
+        expect.objectContaining({ name: 'Düzenlendi' }),
+      );
+    });
+  });
+
+  it('sağlayıcı sil onaylanınca DELETE gönderir', async () => {
+    apiGetMock.mockResolvedValue({ data: { data: [makeProvider()] } });
+    apiDeleteMock.mockResolvedValueOnce({ data: { data: {} } });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const user = userEvent.setup();
+    renderWithProviders(<AISettingsPage />);
+
+    await screen.findByText('OpenAI Prod');
+    await user.click(screen.getByRole('button', { name: /Sağlayıcıyı sil/i }));
+
+    await waitFor(() => expect(apiDeleteMock).toHaveBeenCalledWith('/ai-providers/p-1'));
+  });
+
+  it('hafıza destekli model "hafıza" rozeti gösterir', async () => {
+    apiGetMock
+      .mockResolvedValueOnce({ data: { data: [makeProvider()] } })
+      .mockResolvedValueOnce({ data: { data: [makeModel({ supportsMemory: true, contextWindow: 200000 })] } });
+    const user = userEvent.setup();
+    renderWithProviders(<AISettingsPage />);
+
+    await screen.findByText('OpenAI Prod');
+    await user.click(screen.getByText('OpenAI Prod'));
+
+    await screen.findByText('GPT-4o');
+    expect(screen.getByText(/hafıza/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bağlam: 200/)).toBeInTheDocument();
   });
 });

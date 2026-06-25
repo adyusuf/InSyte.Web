@@ -53,6 +53,34 @@ export const AI_PROVIDERS = {
   OPENAI: "openai",
   ANTHROPIC: "anthropic",
   GOOGLE: "google",
+  DEEPSEEK: "deepseek",
+  QWEN: "qwen",
+  OLLAMA: "ollama",
+  LMSTUDIO: "lmstudio",
+  CUSTOM: "custom",
 } as const;
 
 export type AIProviderType = typeof AI_PROVIDERS[keyof typeof AI_PROVIDERS];
+
+// Sağlayıcı seçenekleri (UI). `local` olanlar yerel/offline çalışır:
+// Base URL zorunlu, API anahtarı opsiyonel.
+export const AI_PROVIDER_OPTIONS: {
+  value: AIProviderType;
+  label: string;
+  local: boolean;
+}[] = [
+  { value: "openai", label: "OpenAI", local: false },
+  { value: "anthropic", label: "Anthropic", local: false },
+  { value: "google", label: "Google", local: false },
+  { value: "deepseek", label: "DeepSeek", local: false },
+  { value: "qwen", label: "Qwen", local: false },
+  { value: "ollama", label: "Ollama (yerel)", local: true },
+  { value: "lmstudio", label: "LM Studio (yerel)", local: true },
+  { value: "custom", label: "Özel (OpenAI uyumlu)", local: false },
+];
+
+// Yerel/offline sağlayıcılar için varsayılan Base URL ipuçları.
+export const AI_PROVIDER_DEFAULT_BASE_URL: Partial<Record<AIProviderType, string>> = {
+  ollama: "http://localhost:11434/v1",
+  lmstudio: "http://localhost:1234/v1",
+};
