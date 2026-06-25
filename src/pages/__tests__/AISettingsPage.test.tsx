@@ -37,7 +37,7 @@ function makeModel(overrides: Partial<AIModel> = {}): AIModel {
   return {
     id: 'm-1', aiProviderId: 'p-1', providerName: 'OpenAI Prod',
     name: 'GPT-4o', modelId: 'gpt-4o', maxTokens: 128000,
-    contextWindow: null, supportsMemory: false,
+    contextWindow: null, supportsMemory: false, role: 'Multimodal',
     isActive: true, createdAt: '2025-01-01T00:00:00Z',
     ...overrides,
   };

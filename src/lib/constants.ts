@@ -84,3 +84,30 @@ export const AI_PROVIDER_DEFAULT_BASE_URL: Partial<Record<AIProviderType, string
   ollama: "http://localhost:11434/v1",
   lmstudio: "http://localhost:1234/v1",
 };
+
+// Modele göre değerlendirme rolü — modalite-bazlı uzman + sentez mimarisi.
+export const AI_MODEL_ROLES = {
+  MULTIMODAL: "Multimodal",
+  VIDEO: "Video",
+  AUDIO: "Audio",
+  TRANSCRIPT: "Transcript",
+  SYNTHESIS: "Synthesis",
+} as const;
+
+export type AIModelRole = typeof AI_MODEL_ROLES[keyof typeof AI_MODEL_ROLES];
+
+export const AI_MODEL_ROLE_OPTIONS: { value: AIModelRole; label: string }[] = [
+  { value: "Multimodal", label: "Multimodal (video+ses birlikte)" },
+  { value: "Video", label: "Video (hareket/beden dili)" },
+  { value: "Audio", label: "Ses (ton/tempo/netlik)" },
+  { value: "Transcript", label: "Transkript (ses→metin)" },
+  { value: "Synthesis", label: "Sentez (birleştirme)" },
+];
+
+export const AI_MODEL_ROLE_LABEL: Record<string, string> = {
+  Multimodal: "🎬🔊 Multimodal",
+  Video: "🎬 Video",
+  Audio: "🔊 Ses",
+  Transcript: "📝 Transkript",
+  Synthesis: "🧩 Sentez",
+};

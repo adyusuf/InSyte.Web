@@ -2,15 +2,15 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../lib/api";
 import { AIProvider, AIModel, ApiResponse } from "../types";
-import { AI_PROVIDER_OPTIONS, AI_PROVIDER_DEFAULT_BASE_URL, AIProviderType } from "../lib/constants";
+import { AI_PROVIDER_OPTIONS, AI_PROVIDER_DEFAULT_BASE_URL, AIProviderType, AI_MODEL_ROLE_OPTIONS, AI_MODEL_ROLE_LABEL } from "../lib/constants";
 import { Plus, ChevronDown, ChevronRight, ArrowLeft, Pencil, Trash2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 type ProviderForm = { name: string; provider: string; apiKey: string; baseUrl: string };
-type ModelForm = { name: string; modelId: string; maxTokens: number; contextWindow: string; supportsMemory: boolean };
+type ModelForm = { name: string; modelId: string; maxTokens: number; contextWindow: string; supportsMemory: boolean; role: string };
 
 const EMPTY_PROVIDER: ProviderForm = { name: "", provider: "openai", apiKey: "", baseUrl: "" };
-const EMPTY_MODEL: ModelForm = { name: "", modelId: "", maxTokens: 4096, contextWindow: "", supportsMemory: false };
+const EMPTY_MODEL: ModelForm = { name: "", modelId: "", maxTokens: 4096, contextWindow: "", supportsMemory: false, role: "Multimodal" };
 
 const isLocal = (p: string) => AI_PROVIDER_OPTIONS.find((o) => o.value === p)?.local ?? false;
 
@@ -79,6 +79,7 @@ export default function AISettingsPage() {
         maxTokens: data.maxTokens,
         contextWindow: data.contextWindow === "" ? null : Number(data.contextWindow),
         supportsMemory: data.supportsMemory,
+        role: data.role,
       };
       return editingModelId
         ? api.put(`/ai-models/${editingModelId}`, payload)
@@ -121,6 +122,7 @@ export default function AISettingsPage() {
         maxTokens: model.maxTokens,
         contextWindow: model.contextWindow != null ? String(model.contextWindow) : "",
         supportsMemory: model.supportsMemory,
+        role: model.role || "Multimodal",
       });
     } else {
       setEditingModelId(null);
@@ -242,6 +244,12 @@ export default function AISettingsPage() {
                         onChange={(e) => setModelForm({ ...modelForm, maxTokens: parseInt(e.target.value) || 0 })} className={inputCls} />
                       <input type="number" placeholder="Bağlam penceresi (token)" value={modelForm.contextWindow}
                         onChange={(e) => setModelForm({ ...modelForm, contextWindow: e.target.value })} className={inputCls} />
+                      <select value={modelForm.role} onChange={(e) => setModelForm({ ...modelForm, role: e.target.value })}
+                        className={`col-span-2 ${inputCls}`} aria-label="Değerlendirme rolü">
+                        {AI_MODEL_ROLE_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
                       <label className="col-span-2 flex items-center gap-2 text-sm text-gray-700">
                         <input type="checkbox" checked={modelForm.supportsMemory}
                           onChange={(e) => setModelForm({ ...modelForm, supportsMemory: e.target.checked })} />
@@ -260,6 +268,7 @@ export default function AISettingsPage() {
                     <div key={m.id} className="flex items-center justify-between py-1.5 text-sm">
                       <span className="flex items-center gap-2">
                         {m.name} <span className="text-gray-400">({m.modelId})</span>
+                        <span className="px-1.5 py-0.5 rounded bg-gray-100 text-xs text-gray-600">{AI_MODEL_ROLE_LABEL[m.role] ?? m.role}</span>
                         {m.supportsMemory && <span className="text-xs text-purple-600">🧠 hafıza</span>}
                       </span>
                       <div className="flex items-center gap-3">

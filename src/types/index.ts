@@ -164,6 +164,7 @@ export interface AIModel {
   maxTokens: number;
   contextWindow?: number | null;
   supportsMemory: boolean;
+  role: string;
   isActive: boolean;
   createdAt: string;
 }
