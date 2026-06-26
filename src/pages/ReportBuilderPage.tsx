@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import api from "../lib/api";
 import { Comparison, Evaluation, ApiResponse, PagedResult } from "../types";
-import { evaluationToSelectable, flattenSelectable, MADDE_GRUPLARI, type SelItem, type MaddeGrup } from "../lib/reportItems";
+import { evaluationToSelectable, flattenSelectable, MADDE_GRUPLARI, METIN_GRUPLARI, type SelItem, type MaddeGrup } from "../lib/reportItems";
 import ComparisonSelectMatrix from "../components/ComparisonSelectMatrix";
 import { downloadCuratedReportPdf } from "../lib/pdf";
 import { ArrowLeft, FileDown, Loader2, Trash2, Check } from "lucide-react";
@@ -77,7 +77,9 @@ export default function ReportBuilderPage() {
   const [title, setTitle] = useState("");
   const [giris, setGiris] = useState("");
   const [sonuc, setSonuc] = useState("");
-  const [items, setItems] = useState<EditItem[]>([]);
+  const [items, setItems] = useState<EditItem[]>([]); // genel/ozet/soru — yapısal
+  const [gucluText, setGucluText] = useState("");     // güçlü yönler — tek metin
+  const [gelisimText, setGelisimText] = useState(""); // gelişim alanları — tek metin
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -90,9 +92,16 @@ export default function ReportBuilderPage() {
 
   const buildFromSelection = () => {
     const chosen = [...selected].map((id) => allById.get(id)).filter((it): it is SelItem => !!it);
-    // Gruba göre sırala (Genel → Özet → Soru → Güçlü → Gelişim → Anlar)
     chosen.sort((a, b) => grupSira(a.grup) - grupSira(b.grup));
-    setItems(chosen.map((it) => ({ id: it.id, grup: it.grup, baslik: it.baslik, metin: it.metin || it.baslik, kaynak: it.kaynak, puan: it.puan })));
+    // Yapısal maddeler: genel/ozet/soru
+    setItems(
+      chosen
+        .filter((it) => it.grup === "genel" || it.grup === "ozet" || it.grup === "soru")
+        .map((it) => ({ id: it.id, grup: it.grup, baslik: it.baslik, metin: it.metin || it.baslik, kaynak: it.kaynak, puan: it.puan }))
+    );
+    // Güçlü/gelişim: seçilen maddeleri tek metinde topla (satır başına bir madde)
+    setGucluText(chosen.filter((it) => it.grup === "guclu").map((it) => it.metin || it.baslik).join("\n"));
+    setGelisimText(chosen.filter((it) => it.grup === "gelisim").map((it) => it.metin || it.baslik).join("\n"));
     setTitle(comparison?.title || "Öğretmen Değerlendirme Raporu");
     setPhase("duzenle");
     setSaved(false);
@@ -101,10 +110,22 @@ export default function ReportBuilderPage() {
   const loadExisting = () => {
     if (!comparison?.reportContentJson) return;
     try {
-      const c = JSON.parse(comparison.reportContentJson) as { giris?: string; sonuc?: string; maddeler?: Partial<EditItem>[] };
+      const c = JSON.parse(comparison.reportContentJson) as {
+        giris?: string; sonuc?: string; gucluText?: string; gelisimText?: string; maddeler?: Partial<EditItem>[];
+      };
       setGiris(c.giris ?? "");
       setSonuc(c.sonuc ?? "");
-      setItems((c.maddeler ?? []).map((m, i) => ({ id: `ex-${i}`, grup: (m.grup ?? "soru") as MaddeGrup, baslik: m.baslik ?? "", metin: m.metin ?? "", kaynak: m.kaynak ?? "", puan: m.puan })));
+      setGucluText(c.gucluText ?? "");
+      setGelisimText(c.gelisimText ?? "");
+      // Yalnızca yapısal grupları yükle (eski güçlü/gelişim maddeleri varsa metne çevir)
+      const maddeler = c.maddeler ?? [];
+      setItems(
+        maddeler
+          .filter((m) => m.grup === "genel" || m.grup === "ozet" || m.grup === "soru" || !m.grup)
+          .map((m, i) => ({ id: `ex-${i}`, grup: (m.grup ?? "soru") as MaddeGrup, baslik: m.baslik ?? "", metin: m.metin ?? "", kaynak: m.kaynak ?? "", puan: m.puan }))
+      );
+      if (!c.gucluText) setGucluText(maddeler.filter((m) => m.grup === "guclu").map((m) => m.metin || m.baslik || "").join("\n"));
+      if (!c.gelisimText) setGelisimText(maddeler.filter((m) => m.grup === "gelisim").map((m) => m.metin || m.baslik || "").join("\n"));
       setTitle(comparison.reportTitle ?? comparison.title ?? "");
       setPhase("duzenle");
     } catch {
@@ -119,7 +140,13 @@ export default function ReportBuilderPage() {
   const save = async () => {
     setSaving(true);
     try {
-      const content = { giris, maddeler: items.map(({ grup, baslik, metin, kaynak, puan }) => ({ grup, baslik, metin, kaynak, puan })), sonuc };
+      const content = {
+        giris,
+        maddeler: items.map(({ grup, baslik, metin, kaynak, puan }) => ({ grup, baslik, metin, kaynak, puan })),
+        gucluText,
+        gelisimText,
+        sonuc,
+      };
       await api.post(`/comparisons/${id}/report`, { title, contentJson: JSON.stringify(content) });
       setSaved(true);
     } catch {
@@ -184,7 +211,8 @@ export default function ReportBuilderPage() {
           </div>
 
           <div className="space-y-5">
-            {MADDE_GRUPLARI.map((grup) => {
+            {/* Yapısal gruplar (genel/özet/soru) — kart */}
+            {MADDE_GRUPLARI.filter((g) => !METIN_GRUPLARI.includes(g.key)).map((grup) => {
               const grupItems = items.filter((it) => it.grup === grup.key);
               if (grupItems.length === 0) return null;
               return (
@@ -195,7 +223,9 @@ export default function ReportBuilderPage() {
                       <div className="flex items-start gap-2">
                         <div className="flex-1 space-y-2">
                           <input value={it.baslik} onChange={(e) => updateItem(it.id, { baslik: e.target.value })} className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                          <textarea value={it.metin} onChange={(e) => updateItem(it.id, { metin: e.target.value })} rows={2} className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          {it.grup === "soru" && (
+                            <textarea value={it.metin} onChange={(e) => updateItem(it.id, { metin: e.target.value })} rows={2} className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          )}
                           <p className="text-[11px] text-gray-400">Kaynak: {it.kaynak}{it.puan != null && ` • Puan: ${it.puan}`}</p>
                         </div>
                         <button onClick={() => removeItem(it.id)} aria-label="Maddeyi çıkar" className="text-gray-400 hover:text-red-500 p-1">
@@ -207,6 +237,22 @@ export default function ReportBuilderPage() {
                 </div>
               );
             })}
+
+            {/* Güçlü Yönler — tek metin alanı */}
+            {gucluText.trim() && (
+              <div className="space-y-2">
+                <h3 className="font-semibold text-gray-900">Güçlü Yönler</h3>
+                <textarea value={gucluText} onChange={(e) => setGucluText(e.target.value)} rows={Math.max(3, gucluText.split("\n").length)} placeholder="Her satıra bir güçlü yön..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            )}
+
+            {/* Gelişim Alanları — tek metin alanı */}
+            {gelisimText.trim() && (
+              <div className="space-y-2">
+                <h3 className="font-semibold text-gray-900">Gelişim Alanları</h3>
+                <textarea value={gelisimText} onChange={(e) => setGelisimText(e.target.value)} rows={Math.max(3, gelisimText.split("\n").length)} placeholder="Her satıra bir gelişim alanı..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -222,7 +268,7 @@ export default function ReportBuilderPage() {
                   <FileDown className="w-4 h-4" /> PDF indir
                 </button>
               )}
-              <button onClick={save} disabled={saving || items.length === 0} className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
+              <button onClick={save} disabled={saving || (items.length === 0 && !gucluText.trim() && !gelisimText.trim())} className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : null}
                 {saved ? "Kaydedildi" : "Raporu Kaydet"}
               </button>

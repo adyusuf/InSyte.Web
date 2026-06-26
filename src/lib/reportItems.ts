@@ -3,15 +3,17 @@ import type { Evaluation } from "../types";
 
 export type MaddeGrup = "genel" | "ozet" | "soru" | "guclu" | "gelisim" | "an";
 
-// Rapor maddeleri gruplama sırası + etiketleri
+// Rapora giren maddelerin gruplama sırası (önemli anlar rapora dahil değil)
 export const MADDE_GRUPLARI: { key: MaddeGrup; label: string }[] = [
   { key: "genel", label: "Genel Puan" },
   { key: "ozet", label: "Özet" },
   { key: "soru", label: "Soru Değerlendirmeleri" },
   { key: "guclu", label: "Güçlü Yönler" },
   { key: "gelisim", label: "Gelişim Alanları" },
-  { key: "an", label: "Önemli Anlar" },
 ];
+
+// Editörde tek metin alanı olarak toplanan gruplar (başlık+alt-metin yerine)
+export const METIN_GRUPLARI: MaddeGrup[] = ["guclu", "gelisim"];
 
 // Matriste/raporda seçilebilen tek bir madde
 export type SelItem = {

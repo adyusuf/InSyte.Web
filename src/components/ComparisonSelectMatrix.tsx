@@ -89,7 +89,6 @@ export default function ComparisonSelectMatrix({ cols, questionOrder, selected, 
           {row("ozet", "Özet", (c) => cell(c.sel.ozet, true))}
           {row("guclu", "Güçlü Yönler", (c) => cellList(c.sel.guclu))}
           {row("gelisim", "Gelişim Alanları", (c) => cellList(c.sel.gelisim))}
-          {row("anlar", "Önemli Anlar", (c) => cellList(c.sel.anlar))}
         </tbody>
       </table>
     </div>
