@@ -27,10 +27,10 @@ export default function MomentTimeline({ moments, onSeek }: Props) {
 
   return (
     <ol className="relative border-l border-gray-200 ml-2 space-y-3">
-      {sorted.map((m, i) => {
+      {sorted.map((m) => {
         const st = TIP_STYLE[m.tip];
         return (
-          <li key={`m-${i}`} className="ml-4">
+          <li key={`${m.zaman}-${m.baslik}`} className="ml-4">
             <span className={`absolute -left-1.5 mt-1.5 w-3 h-3 rounded-full ${st.dot} ring-2 ring-white`} />
             <div className="flex items-start gap-2">
               <button

@@ -23,9 +23,9 @@ function EvidenceChips({ kanitlar, onSeek }: { kanitlar: Evidence[]; onSeek?: Pr
   if (kanitlar.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-1 mt-1">
-      {kanitlar.map((k, i) => (
+      {kanitlar.map((k) => (
         <button
-          key={`ev-${i}`}
+          key={`${k.baslangic}-${k.bitis ?? "x"}-${k.aciklama?.slice(0, 12) ?? ""}`}
           onClick={() => onSeek?.(k.baslangic)}
           disabled={!onSeek}
           title={k.aciklama}
@@ -76,8 +76,8 @@ export default function EvaluationReport({ result, questionText, onSeek }: Props
               <ThumbsUp className="w-4 h-4" /> Güçlü Yönler
             </p>
             <ul className="space-y-2">
-              {d.gucluYonler.map((g, i) => (
-                <li key={`g-${i}`} className="text-xs text-gray-700">
+              {d.gucluYonler.map((g) => (
+                <li key={g.baslik} className="text-xs text-gray-700">
                   <span className="flex gap-1.5">
                     <span className="text-green-600">•</span> {g.baslik}
                   </span>
@@ -93,8 +93,8 @@ export default function EvaluationReport({ result, questionText, onSeek }: Props
               <TrendingUp className="w-4 h-4" /> Gelişim Alanları
             </p>
             <ul className="space-y-2">
-              {d.gelisimAlanlari.map((g, i) => (
-                <li key={`d-${i}`} className="text-xs text-gray-700">
+              {d.gelisimAlanlari.map((g) => (
+                <li key={g.baslik} className="text-xs text-gray-700">
                   <span className="flex gap-1.5">
                     <span className="text-amber-600">•</span> {g.baslik}
                   </span>
