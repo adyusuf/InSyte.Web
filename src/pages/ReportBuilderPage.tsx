@@ -3,12 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import api from "../lib/api";
 import { Comparison, Evaluation, ApiResponse, PagedResult } from "../types";
-import { evaluationToSelectable, flattenSelectable, type SelItem } from "../lib/reportItems";
+import { evaluationToSelectable, flattenSelectable, MADDE_GRUPLARI, type SelItem, type MaddeGrup } from "../lib/reportItems";
 import ComparisonSelectMatrix from "../components/ComparisonSelectMatrix";
 import { downloadCuratedReportPdf } from "../lib/pdf";
 import { ArrowLeft, FileDown, Loader2, Trash2, Check } from "lucide-react";
 
-type EditItem = { id: string; baslik: string; metin: string; kaynak: string; puan?: number };
+type EditItem = { id: string; grup: MaddeGrup; baslik: string; metin: string; kaynak: string; puan?: number };
+
+const grupSira = (g: MaddeGrup) => MADDE_GRUPLARI.findIndex((x) => x.key === g);
 
 export default function ReportBuilderPage() {
   const { id } = useParams<{ id: string }>();
@@ -88,7 +90,9 @@ export default function ReportBuilderPage() {
 
   const buildFromSelection = () => {
     const chosen = [...selected].map((id) => allById.get(id)).filter((it): it is SelItem => !!it);
-    setItems(chosen.map((it) => ({ id: it.id, baslik: it.baslik, metin: it.metin || it.baslik, kaynak: it.kaynak, puan: it.puan })));
+    // Gruba göre sırala (Genel → Özet → Soru → Güçlü → Gelişim → Anlar)
+    chosen.sort((a, b) => grupSira(a.grup) - grupSira(b.grup));
+    setItems(chosen.map((it) => ({ id: it.id, grup: it.grup, baslik: it.baslik, metin: it.metin || it.baslik, kaynak: it.kaynak, puan: it.puan })));
     setTitle(comparison?.title || "Öğretmen Değerlendirme Raporu");
     setPhase("duzenle");
     setSaved(false);
@@ -97,10 +101,10 @@ export default function ReportBuilderPage() {
   const loadExisting = () => {
     if (!comparison?.reportContentJson) return;
     try {
-      const c = JSON.parse(comparison.reportContentJson) as { giris?: string; sonuc?: string; maddeler?: EditItem[] };
+      const c = JSON.parse(comparison.reportContentJson) as { giris?: string; sonuc?: string; maddeler?: Partial<EditItem>[] };
       setGiris(c.giris ?? "");
       setSonuc(c.sonuc ?? "");
-      setItems((c.maddeler ?? []).map((m, i) => ({ id: `ex-${i}`, baslik: m.baslik ?? "", metin: m.metin ?? "", kaynak: m.kaynak ?? "", puan: m.puan })));
+      setItems((c.maddeler ?? []).map((m, i) => ({ id: `ex-${i}`, grup: (m.grup ?? "soru") as MaddeGrup, baslik: m.baslik ?? "", metin: m.metin ?? "", kaynak: m.kaynak ?? "", puan: m.puan })));
       setTitle(comparison.reportTitle ?? comparison.title ?? "");
       setPhase("duzenle");
     } catch {
@@ -115,7 +119,7 @@ export default function ReportBuilderPage() {
   const save = async () => {
     setSaving(true);
     try {
-      const content = { giris, maddeler: items.map(({ baslik, metin, kaynak, puan }) => ({ baslik, metin, kaynak, puan })), sonuc };
+      const content = { giris, maddeler: items.map(({ grup, baslik, metin, kaynak, puan }) => ({ grup, baslik, metin, kaynak, puan })), sonuc };
       await api.post(`/comparisons/${id}/report`, { title, contentJson: JSON.stringify(content) });
       setSaved(true);
     } catch {
@@ -179,22 +183,30 @@ export default function ReportBuilderPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
-            <h3 className="font-semibold text-gray-900">Maddeler ({items.length})</h3>
-            {items.map((it) => (
-              <div key={it.id} className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex items-start gap-2">
-                  <div className="flex-1 space-y-2">
-                    <input value={it.baslik} onChange={(e) => updateItem(it.id, { baslik: e.target.value })} className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <textarea value={it.metin} onChange={(e) => updateItem(it.id, { metin: e.target.value })} rows={2} className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <p className="text-[11px] text-gray-400">Kaynak: {it.kaynak}{it.puan != null && ` • Puan: ${it.puan}`}</p>
-                  </div>
-                  <button onClick={() => removeItem(it.id)} aria-label="Maddeyi çıkar" className="text-gray-400 hover:text-red-500 p-1">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+          <div className="space-y-5">
+            {MADDE_GRUPLARI.map((grup) => {
+              const grupItems = items.filter((it) => it.grup === grup.key);
+              if (grupItems.length === 0) return null;
+              return (
+                <div key={grup.key} className="space-y-2">
+                  <h3 className="font-semibold text-gray-900">{grup.label} ({grupItems.length})</h3>
+                  {grupItems.map((it) => (
+                    <div key={it.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 space-y-2">
+                          <input value={it.baslik} onChange={(e) => updateItem(it.id, { baslik: e.target.value })} className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <textarea value={it.metin} onChange={(e) => updateItem(it.id, { metin: e.target.value })} rows={2} className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          <p className="text-[11px] text-gray-400">Kaynak: {it.kaynak}{it.puan != null && ` • Puan: ${it.puan}`}</p>
+                        </div>
+                        <button onClick={() => removeItem(it.id)} aria-label="Maddeyi çıkar" className="text-gray-400 hover:text-red-500 p-1">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 p-5">
