@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import api from "../lib/api";
 import { Comparison, Evaluation, ApiResponse, PagedResult } from "../types";
-import { parseEvaluation } from "../lib/evaluation";
-import { evaluationToItems } from "../lib/reportItems";
+import { evaluationToSelectable, flattenSelectable, type SelItem } from "../lib/reportItems";
+import ComparisonSelectMatrix from "../components/ComparisonSelectMatrix";
 import { downloadCuratedReportPdf } from "../lib/pdf";
 import { ArrowLeft, FileDown, Loader2, Trash2, Check } from "lucide-react";
 
@@ -45,10 +45,30 @@ export default function ReportBuilderPage() {
     },
   });
 
-  const itemsByEval = useMemo(
-    () => evals.map((e) => ({ e, items: evaluationToItems(e, parseEvaluation(e.result), questionText) })),
-    [evals, questionText]
-  );
+  // Matris sütunları (her değerlendirme) + tüm seçilebilir maddelerin id haritası
+  const cols = useMemo(() => evals.map((e) => ({ e, sel: evaluationToSelectable(e, questionText) })), [evals, questionText]);
+
+  const allById = useMemo(() => {
+    const m = new Map<string, SelItem>();
+    cols.forEach((c) => flattenSelectable(c.sel).forEach((it) => m.set(it.id, it)));
+    return m;
+  }, [cols]);
+
+  // Soru sırası (ilk görülme) — matris satırları
+  const questionOrder = useMemo(() => {
+    const seen = new Set<string>();
+    const out: { id: string; text: string }[] = [];
+    cols.forEach((c) =>
+      Object.values(c.sel.soru).forEach((s) => {
+        const sid = s.id.split("::soru::")[1];
+        if (sid && !seen.has(sid)) {
+          seen.add(sid);
+          out.push({ id: sid, text: s.baslik });
+        }
+      })
+    );
+    return out;
+  }, [cols]);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [phase, setPhase] = useState<"sec" | "duzenle">("sec");
@@ -67,8 +87,8 @@ export default function ReportBuilderPage() {
     });
 
   const buildFromSelection = () => {
-    const chosen = itemsByEval.flatMap((g) => g.items).filter((it) => selected.has(it.id));
-    setItems(chosen.map((it) => ({ id: it.id, baslik: it.baslik, metin: it.metin, kaynak: it.kaynak, puan: it.puan })));
+    const chosen = [...selected].map((id) => allById.get(id)).filter((it): it is SelItem => !!it);
+    setItems(chosen.map((it) => ({ id: it.id, baslik: it.baslik, metin: it.metin || it.baslik, kaynak: it.kaynak, puan: it.puan })));
     setTitle(comparison?.title || "Öğretmen Değerlendirme Raporu");
     setPhase("duzenle");
     setSaved(false);
@@ -108,7 +128,7 @@ export default function ReportBuilderPage() {
   if (!comparison) return <div className="text-center py-12 text-gray-500">Yukleniyor...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className={phase === "sec" ? "" : "max-w-4xl mx-auto"}>
       <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
         <ArrowLeft className="w-4 h-4" /> Geri
       </button>
@@ -131,34 +151,10 @@ export default function ReportBuilderPage() {
             </div>
           )}
           <p className="text-sm text-gray-600">
-            Değerlendirmelerin detaylarını okuyup rapora eklemek istediğin maddeleri seç. Sonra düzenleyip kaydedebilirsin.
+            Soru ve değerlendirme matrisinden rapora eklemek istediğin hücreleri/maddeleri seç. Sonra düzenleyip kaydedebilirsin.
           </p>
 
-          {itemsByEval.map(({ e, items: evItems }) => (
-            <div key={e.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                <p className="font-medium text-sm text-gray-800">{e.aiModelName}</p>
-                <p className="text-xs text-gray-500">{e.criteriaName}</p>
-              </div>
-              <ul className="divide-y divide-gray-100">
-                {evItems.map((it) => (
-                  <li key={it.id}>
-                    <label className="flex gap-3 px-4 py-2.5 hover:bg-blue-50/40 cursor-pointer">
-                      <input type="checkbox" checked={selected.has(it.id)} onChange={() => toggle(it.id)} className="mt-0.5 w-4 h-4 accent-blue-600 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs">
-                          <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] mr-1.5">{it.turEtiket}</span>
-                          <span className="font-medium text-gray-800">{it.baslik}</span>
-                          {it.puan != null && <span className="ml-1.5 text-gray-500">({it.puan})</span>}
-                        </p>
-                        {it.metin && it.metin !== it.baslik && <p className="text-xs text-gray-600 mt-0.5">{it.metin}</p>}
-                      </div>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <ComparisonSelectMatrix cols={cols} questionOrder={questionOrder} selected={selected} onToggle={toggle} />
 
           <div className="sticky bottom-4 flex justify-end">
             <button
