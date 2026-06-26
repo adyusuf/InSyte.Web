@@ -12,22 +12,37 @@ type Props = {
   onSeek: (seconds: number) => void;
   onRetry: (id: string) => void;
   defaultOpen?: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 };
 
 /** Tek değerlendirme: akordiyon başlık + içinde "Rapor | Önemli Anlar" sekmeleri. */
-export default function EvaluationCard({ evaluation: e, questionText, onSeek, onRetry, defaultOpen }: Props) {
+export default function EvaluationCard({ evaluation: e, questionText, onSeek, onRetry, defaultOpen, selectable, selected, onToggleSelect }: Props) {
   const [open, setOpen] = useState(!!defaultOpen);
   const [tab, setTab] = useState<"rapor" | "anlar">("rapor");
   const parsed = parseEvaluation(e.result);
   const momentCount = parsed.onemliAnlar.length;
 
   return (
-    <div>
-      {/* Başlık (akordiyon) */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full px-6 py-4 flex items-start justify-between gap-3 hover:bg-gray-50 text-left"
-      >
+    <div className={selected ? "ring-2 ring-blue-500 rounded-xl" : ""}>
+      <div className="flex items-stretch">
+        {selectable && (
+          <label className="flex items-center pl-4 cursor-pointer" title="Karşılaştırma/PDF için seç">
+            <input
+              type="checkbox"
+              checked={!!selected}
+              onChange={() => onToggleSelect?.(e.id)}
+              className="w-4 h-4 accent-blue-600"
+              aria-label="Bu değerlendirmeyi seç"
+            />
+          </label>
+        )}
+        {/* Başlık (akordiyon) */}
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex-1 px-6 py-4 flex items-start justify-between gap-3 hover:bg-gray-50 text-left"
+        >
         <div className="flex items-start gap-2 min-w-0">
           <ChevronDown className={`w-4 h-4 text-gray-400 mt-0.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
           <div className="min-w-0">
@@ -55,7 +70,8 @@ export default function EvaluationCard({ evaluation: e, questionText, onSeek, on
             </span>
           )}
         </div>
-      </button>
+        </button>
+      </div>
 
       {/* İçerik: sekmeler */}
       {open && e.result && (

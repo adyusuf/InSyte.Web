@@ -6,8 +6,10 @@ import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
 import VideoPlayer from "../components/VideoPlayer";
 import EvaluationCard from "../components/EvaluationCard";
+import ComparisonTable from "../components/ComparisonTable";
+import { downloadReportPdf, downloadComparisonPdf } from "../lib/pdf";
 import { EVALUATION_IN_PROGRESS } from "../lib/constants";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, FileDown, GitCompare, X, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 
 const anyInProgress = (evals?: Evaluation[]) =>
@@ -19,6 +21,25 @@ export default function VideoDetailPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ criteriaId: "", aiModelId: "" });
   const seekRef = useRef<((seconds: number) => void) | null>(null);
+
+  // Karşılaştırma/PDF seçimi (seçim sırası korunur)
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState<"" | "report" | "comparison">("");
+
+  const toggleSelect = (eid: string) =>
+    setSelectedIds((prev) => (prev.includes(eid) ? prev.filter((x) => x !== eid) : [...prev, eid]));
+
+  const runPdf = async (kind: "report" | "comparison", fn: () => Promise<void>) => {
+    setPdfBusy(kind);
+    try {
+      await fn();
+    } catch {
+      alert("PDF oluşturulamadı.");
+    } finally {
+      setPdfBusy("");
+    }
+  };
 
   // Kanıt/timeline tıklaması: üstteki videoyu o ana sür + videoyu göster
   const handleSeek = (seconds: number) => {
@@ -114,6 +135,11 @@ export default function VideoDetailPage() {
     e.preventDefault();
     evaluateMutation.mutate();
   };
+
+  // Seçili değerlendirmeler (seçim sırasıyla)
+  const selectedEvals = selectedIds
+    .map((sid) => evaluations?.items.find((e) => e.id === sid))
+    .filter((e): e is Evaluation => !!e);
 
   return (
     <div>
@@ -241,6 +267,58 @@ export default function VideoDetailPage() {
         </button>
       </div>
 
+      {/* Seçim aksiyon çubuğu */}
+      {selectedEvals.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+          <span className="text-sm font-medium text-blue-800">{selectedEvals.length} değerlendirme seçili</span>
+          <div className="flex-1" />
+          <button
+            onClick={() => runPdf("report", () => downloadReportPdf(selectedIds))}
+            disabled={pdfBusy !== ""}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            {pdfBusy === "report" ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+            Rapor PDF
+          </button>
+          <button
+            onClick={() => setShowComparison((v) => !v)}
+            disabled={selectedEvals.length < 2}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            title={selectedEvals.length < 2 ? "En az 2 değerlendirme seçin" : ""}
+          >
+            <GitCompare className="w-4 h-4" />
+            {showComparison ? "Karşılaştırmayı Gizle" : "Karşılaştır"}
+          </button>
+          <button
+            onClick={() => {
+              setSelectedIds([]);
+              setShowComparison(false);
+            }}
+            className="inline-flex items-center gap-1 px-2 py-1.5 text-sm text-gray-500 hover:text-gray-700"
+          >
+            <X className="w-4 h-4" /> Temizle
+          </button>
+        </div>
+      )}
+
+      {/* Karşılaştırma paneli */}
+      {showComparison && selectedEvals.length >= 2 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Karşılaştırma ({selectedEvals.length})</h3>
+            <button
+              onClick={() => runPdf("comparison", () => downloadComparisonPdf(selectedIds))}
+              disabled={pdfBusy !== ""}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              {pdfBusy === "comparison" ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+              Karşılaştırmayı PDF indir
+            </button>
+          </div>
+          <ComparisonTable evaluations={selectedEvals} questionText={questionTextMap} />
+        </div>
+      )}
+
       {evaluations?.items && evaluations.items.length > 0 ? (
         <div className="space-y-3">
           {evaluations.items.map((e, i) => (
@@ -251,6 +329,9 @@ export default function VideoDetailPage() {
                 onSeek={handleSeek}
                 onRetry={(eid) => retryMutation.mutate(eid)}
                 defaultOpen={i === 0}
+                selectable={!!e.result}
+                selected={selectedIds.includes(e.id)}
+                onToggleSelect={toggleSelect}
               />
             </div>
           ))}
