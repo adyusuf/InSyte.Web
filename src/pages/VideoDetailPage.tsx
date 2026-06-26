@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../lib/api";
 import { Video, Evaluation, Criteria, AIModel, AIProvider, ApiResponse, PagedResult } from "../types";
@@ -7,9 +7,10 @@ import StatusBadge from "../components/StatusBadge";
 import VideoPlayer from "../components/VideoPlayer";
 import EvaluationCard from "../components/EvaluationCard";
 import ComparisonTable from "../components/ComparisonTable";
-import { downloadReportPdf, downloadComparisonPdf } from "../lib/pdf";
+import { downloadReportPdf, downloadComparisonPdf, downloadCuratedReportPdf } from "../lib/pdf";
 import { EVALUATION_IN_PROGRESS } from "../lib/constants";
-import { ArrowLeft, Plus, FileDown, GitCompare, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, FileDown, GitCompare, X, Loader2, FilePlus, FileText } from "lucide-react";
+import type { Comparison } from "../types";
 import { useRef, useState } from "react";
 
 const anyInProgress = (evals?: Evaluation[]) =>
@@ -18,6 +19,7 @@ const anyInProgress = (evals?: Evaluation[]) =>
 export default function VideoDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ criteriaId: "", aiModelId: "" });
   const seekRef = useRef<((seconds: number) => void) | null>(null);
@@ -38,6 +40,23 @@ export default function VideoDetailPage() {
       alert("PDF oluşturulamadı.");
     } finally {
       setPdfBusy("");
+    }
+  };
+
+  // Seçili değerlendirmelerden karşılaştırma oluştur → rapor hazırlama ekranına geç
+  const [buildingReport, setBuildingReport] = useState(false);
+  const buildReport = async () => {
+    setBuildingReport(true);
+    try {
+      const res = await api.post<ApiResponse<{ id: string }>>("/comparisons", {
+        videoId: id,
+        evaluationIds: selectedIds,
+        title: null,
+      });
+      navigate(`/comparisons/${res.data.data!.id}/rapor`);
+    } catch {
+      alert("Karşılaştırma oluşturulamadı.");
+      setBuildingReport(false);
     }
   };
 
@@ -86,6 +105,12 @@ export default function VideoDetailPage() {
       }
       return map;
     },
+  });
+
+  // Bu videonun kayıtlı karşılaştırmaları (her birinin opsiyonel raporu)
+  const { data: comparisons } = useQuery({
+    queryKey: ["comparisons", id],
+    queryFn: () => api.get<ApiResponse<Comparison[]>>("/comparisons", { params: { videoId: id } }).then((r) => r.data.data ?? []),
   });
 
   const { data: criteria } = useQuery({
@@ -306,14 +331,24 @@ export default function VideoDetailPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Karşılaştırma ({selectedEvals.length})</h3>
-            <button
-              onClick={() => runPdf("comparison", () => downloadComparisonPdf(selectedIds))}
-              disabled={pdfBusy !== ""}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-            >
-              {pdfBusy === "comparison" ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
-              Karşılaştırmayı PDF indir
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => runPdf("comparison", () => downloadComparisonPdf(selectedIds))}
+                disabled={pdfBusy !== ""}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                {pdfBusy === "comparison" ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+                Karşılaştırmayı PDF indir
+              </button>
+              <button
+                onClick={buildReport}
+                disabled={buildingReport}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {buildingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <FilePlus className="w-4 h-4" />}
+                Rapor Hazırla
+              </button>
+            </div>
           </div>
           <ComparisonTable evaluations={selectedEvals} questionText={questionTextMap} />
         </div>
@@ -340,6 +375,44 @@ export default function VideoDetailPage() {
         <p className="text-sm text-gray-500 bg-white rounded-xl border border-gray-200 px-6 py-4">
           Degerlendirme yok
         </p>
+      )}
+
+      {/* Kayıtlı karşılaştırmalar + raporları */}
+      {comparisons && comparisons.length > 0 && (
+        <div className="mt-8">
+          <h2 className="font-semibold text-gray-900 mb-3">Karşılaştırmalar & Raporlar ({comparisons.length})</h2>
+          <div className="space-y-2">
+            {comparisons.map((c) => (
+              <div key={c.id} className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800">
+                    {c.title || "Karşılaştırma"} <span className="text-xs text-gray-400">• {c.evaluationIds.length} değerlendirme</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {new Date(c.createdAt).toLocaleString("tr-TR")}
+                    {c.reportId && <span className="ml-2 text-green-700">• Rapor: {c.reportTitle || "hazır"} ({c.reportStatus})</span>}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {c.reportId && (
+                    <button
+                      onClick={() => downloadCuratedReportPdf(c.id).catch(() => alert("PDF indirilemedi"))}
+                      className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800"
+                    >
+                      <FileDown className="w-3.5 h-3.5" /> PDF
+                    </button>
+                  )}
+                  <Link
+                    to={`/comparisons/${c.id}/rapor`}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-blue-600 hover:bg-blue-50 rounded"
+                  >
+                    <FileText className="w-3.5 h-3.5" /> {c.reportId ? "Raporu Düzenle" : "Rapor Hazırla"}
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

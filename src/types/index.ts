@@ -139,7 +139,9 @@ export interface Evaluation {
 
 export interface Report {
   id: string;
-  evaluationId: string;
+  evaluationId?: string | null;
+  comparisonId?: string | null;
+  title?: string | null;
   videoTitle: string;
   schoolName: string;
   teacherName: string;
@@ -387,4 +389,16 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   message?: string;
+}
+
+export interface Comparison {
+  id: string;
+  videoId: string;
+  title?: string | null;
+  evaluationIds: string[];
+  createdAt: string;
+  reportId?: string | null;
+  reportTitle?: string | null;
+  reportStatus?: string | null;
+  reportContentJson?: string | null;
 }

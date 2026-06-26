@@ -10,6 +10,7 @@ import TeachersPage from "./pages/TeachersPage";
 import VideosPage from "./pages/VideosPage";
 import VideoUploadPage from "./pages/VideoUploadPage";
 import VideoDetailPage from "./pages/VideoDetailPage";
+import ReportBuilderPage from "./pages/ReportBuilderPage";
 import ReportsPage from "./pages/ReportsPage";
 import TeamPage from "./pages/TeamPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -64,6 +65,7 @@ function AppRoutes() {
         <Route path="videos" element={<VideosPage />} />
         <Route path="videos/upload" element={<VideoUploadPage />} />
         <Route path="videos/:id" element={<VideoDetailPage />} />
+        <Route path="comparisons/:id/rapor" element={<ReportBuilderPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route
           path="team"
