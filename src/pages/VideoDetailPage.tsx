@@ -8,7 +8,7 @@ import VideoPlayer from "../components/VideoPlayer";
 import EvaluationCard from "../components/EvaluationCard";
 import { downloadCuratedReportPdf } from "../lib/pdf";
 import { EVALUATION_IN_PROGRESS } from "../lib/constants";
-import { ArrowLeft, Plus, FileDown, X, Loader2, FilePlus, FileText } from "lucide-react";
+import { ArrowLeft, Plus, FileDown, Loader2, FilePlus, FileText } from "lucide-react";
 import type { Comparison } from "../types";
 import { useRef, useState } from "react";
 
@@ -23,26 +23,21 @@ export default function VideoDetailPage() {
   const [form, setForm] = useState({ criteriaId: "", aiModelId: "" });
   const seekRef = useRef<((seconds: number) => void) | null>(null);
 
-  // Karşılaştırma/PDF seçimi (seçim sırası korunur)
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-  const toggleSelect = (eid: string) =>
-    setSelectedIds((prev) => (prev.includes(eid) ? prev.filter((x) => x !== eid) : [...prev, eid]));
-
-  // Seçili değerlendirmelerden karşılaştırma oluştur → rapor hazırlama ekranına geç
-  const [buildingReport, setBuildingReport] = useState(false);
-  const buildReport = async () => {
-    setBuildingReport(true);
+  // Bir kriterin (tamamlanmış) değerlendirmelerinden rapor hazırla → editöre geç
+  const [buildingCriteria, setBuildingCriteria] = useState<string>("");
+  const buildReportForCriterion = async (criteriaName: string, evalIds: string[]) => {
+    if (evalIds.length === 0) return;
+    setBuildingCriteria(criteriaName);
     try {
       const res = await api.post<ApiResponse<{ id: string }>>("/comparisons", {
         videoId: id,
-        evaluationIds: selectedIds,
-        title: null,
+        evaluationIds: evalIds,
+        title: criteriaName,
       });
       navigate(`/comparisons/${res.data.data!.id}/rapor`);
     } catch {
-      alert("Karşılaştırma oluşturulamadı.");
-      setBuildingReport(false);
+      alert("Rapor oluşturulamadı.");
+      setBuildingCriteria("");
     }
   };
 
@@ -147,10 +142,15 @@ export default function VideoDetailPage() {
     evaluateMutation.mutate();
   };
 
-  // Seçili değerlendirmeler (seçim sırasıyla)
-  const selectedEvals = selectedIds
-    .map((sid) => evaluations?.items.find((e) => e.id === sid))
-    .filter((e): e is Evaluation => !!e);
+  // Değerlendirmeleri kritere göre grupla (her kriter = 1+ model değerlendirmesi)
+  const criteriaGroups = (() => {
+    const map = new Map<string, { name: string; evals: Evaluation[] }>();
+    (evaluations?.items ?? []).forEach((e) => {
+      if (!map.has(e.criteriaId)) map.set(e.criteriaId, { name: e.criteriaName, evals: [] });
+      map.get(e.criteriaId)!.evals.push(e);
+    });
+    return [...map.values()];
+  })();
 
   return (
     <div>
@@ -266,7 +266,7 @@ export default function VideoDetailPage() {
         </form>
       </Modal>
 
-      {/* Değerlendirmeler — ilki açık, diğerleri akordiyon */}
+      {/* Değerlendirmeler — kritere göre gruplu; her kriterden rapor hazırlanır */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-gray-900">Degerlendirmeler ({evaluations?.items.length || 0})</h2>
         <button
@@ -278,45 +278,42 @@ export default function VideoDetailPage() {
         </button>
       </div>
 
-      {/* Seçim aksiyon çubuğu — seçilenlerle rapor hazırla */}
-      {selectedEvals.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
-          <span className="text-sm font-medium text-blue-800">{selectedEvals.length} değerlendirme seçili</span>
-          <div className="flex-1" />
-          <button
-            onClick={buildReport}
-            disabled={selectedEvals.length < 2 || buildingReport}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            title={selectedEvals.length < 2 ? "En az 2 değerlendirme seçin" : ""}
-          >
-            {buildingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <FilePlus className="w-4 h-4" />}
-            Rapor Hazırla
-          </button>
-          <button
-            onClick={() => setSelectedIds([])}
-            className="inline-flex items-center gap-1 px-2 py-1.5 text-sm text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-4 h-4" /> Temizle
-          </button>
-        </div>
-      )}
-
-      {evaluations?.items && evaluations.items.length > 0 ? (
-        <div className="space-y-3">
-          {evaluations.items.map((e, i) => (
-            <div key={e.id} className="bg-white rounded-xl border border-gray-200">
-              <EvaluationCard
-                evaluation={e}
-                questionText={questionTextMap}
-                onSeek={handleSeek}
-                onRetry={(eid) => retryMutation.mutate(eid)}
-                defaultOpen={i === 0}
-                selectable={!!e.result}
-                selected={selectedIds.includes(e.id)}
-                onToggleSelect={toggleSelect}
-              />
-            </div>
-          ))}
+      {criteriaGroups.length > 0 ? (
+        <div className="space-y-5">
+          {criteriaGroups.map((g, gi) => {
+            const tamamlanan = g.evals.filter((e) => e.result).map((e) => e.id);
+            return (
+              <div key={g.name + gi}>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-800">
+                    {g.name} <span className="text-xs font-normal text-gray-400">• {g.evals.length} model</span>
+                  </h3>
+                  <button
+                    onClick={() => buildReportForCriterion(g.name, tamamlanan)}
+                    disabled={tamamlanan.length === 0 || buildingCriteria !== ""}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    title={tamamlanan.length === 0 ? "Tamamlanmış değerlendirme yok" : ""}
+                  >
+                    {buildingCriteria === g.name ? <Loader2 className="w-4 h-4 animate-spin" /> : <FilePlus className="w-4 h-4" />}
+                    Rapor Hazırla
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {g.evals.map((e, i) => (
+                    <div key={e.id} className="bg-white rounded-xl border border-gray-200">
+                      <EvaluationCard
+                        evaluation={e}
+                        questionText={questionTextMap}
+                        onSeek={handleSeek}
+                        onRetry={(eid) => retryMutation.mutate(eid)}
+                        defaultOpen={gi === 0 && i === 0}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <p className="text-sm text-gray-500 bg-white rounded-xl border border-gray-200 px-6 py-4">

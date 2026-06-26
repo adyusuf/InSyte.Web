@@ -1,117 +1,134 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import api from "../lib/api";
-import { Video, School, ApiResponse, PagedResult } from "../types";
+import { Video, ApiResponse, PagedResult } from "../types";
 import SearchInput from "../components/SearchInput";
-import Pagination from "../components/Pagination";
 import StatusBadge from "../components/StatusBadge";
-import { Plus } from "lucide-react";
+import { Plus, ChevronDown, Building2, User, Film } from "lucide-react";
+
+const formatSize = (bytes: number) =>
+  bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
 export default function VideosPage() {
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [schoolFilter, setSchoolFilter] = useState("");
-
-  const { data: schools } = useQuery({
-    queryKey: ["schools-all"],
-    queryFn: () =>
-      api.get<ApiResponse<PagedResult<School>>>("/schools", { params: { pageSize: 100 } })
-        .then((r) => r.data.data!),
-  });
+  const [openSchools, setOpenSchools] = useState<Set<string>>(new Set());
+  const [openTeachers, setOpenTeachers] = useState<Set<string>>(new Set());
 
   const { data, isLoading } = useQuery({
-    queryKey: ["videos", schoolFilter, search, page],
+    queryKey: ["videos-all"],
     queryFn: () =>
-      api
-        .get<ApiResponse<PagedResult<Video>>>("/videos", {
-          params: { schoolId: schoolFilter || undefined, search, page, pageSize: 20 },
-        })
-        .then((r) => r.data.data!),
-    // İşlenen video varsa listeyi canlı güncelle (5 sn)
-    refetchInterval: (q) =>
-      q.state.data?.items.some((v) => v.status === "Processing") ? 5000 : false,
+      api.get<ApiResponse<PagedResult<Video>>>("/videos", { params: { pageSize: 100 } }).then((r) => r.data.data!),
+    refetchInterval: (q) => (q.state.data?.items.some((v) => v.status === "Processing") ? 5000 : false),
   });
 
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  // Okul → Öğretmen → Videolar kırılımı (arama filtreli)
+  const tree = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const filtered = (data?.items ?? []).filter(
+      (v) => !q || v.title.toLowerCase().includes(q) || v.teacherName.toLowerCase().includes(q) || v.schoolName.toLowerCase().includes(q)
+    );
+    const schools = new Map<string, { name: string; teachers: Map<string, { name: string; videos: Video[] }> }>();
+    for (const v of filtered) {
+      if (!schools.has(v.schoolId)) schools.set(v.schoolId, { name: v.schoolName, teachers: new Map() });
+      const t = schools.get(v.schoolId)!.teachers;
+      if (!t.has(v.teacherUserId)) t.set(v.teacherUserId, { name: v.teacherName, videos: [] });
+      t.get(v.teacherUserId)!.videos.push(v);
+    }
+    return [...schools.entries()].map(([sid, s]) => ({
+      sid,
+      name: s.name,
+      count: [...s.teachers.values()].reduce((n, t) => n + t.videos.length, 0),
+      teachers: [...s.teachers.entries()].map(([tid, t]) => ({ tid, name: t.name, videos: t.videos })),
+    }));
+  }, [data, search]);
+
+  const toggle = (set: Set<string>, setFn: (s: Set<string>) => void, key: string) => {
+    const next = new Set(set);
+    next.has(key) ? next.delete(key) : next.add(key);
+    setFn(next);
   };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Videolar</h1>
-        <Link
-          to="/videos/upload"
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Video Yükle
+        <Link to="/videos/upload" className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+          <Plus className="w-4 h-4" /> Video Yükle
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="w-48">
-          <select
-            value={schoolFilter}
-            onChange={(e) => { setSchoolFilter(e.target.value); setPage(1); }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Tüm Okullar</option>
-            {schools?.items.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </div>
-        <div className="flex-1 max-w-xs">
-          <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Video ara..." />
-        </div>
+      <div className="max-w-xs mb-4">
+        <SearchInput value={search} onChange={setSearch} placeholder="Okul, öğretmen veya video ara..." />
       </div>
 
       {isLoading ? (
         <div className="text-center py-12 text-gray-500">Yükleniyor...</div>
+      ) : tree.length === 0 ? (
+        <p className="text-sm text-gray-500 bg-white rounded-xl border border-gray-200 px-6 py-12 text-center">Video bulunamadı</p>
       ) : (
-        <>
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Başlık</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Okul</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Öğretmen</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Konu</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Boyut</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Durum</th>
-                  <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Tarih</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {data?.items.map((video) => (
-                  <tr key={video.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <Link to={`/videos/${video.id}`} className="text-sm font-medium text-blue-600 hover:underline">
-                        {video.title}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{video.schoolName}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{video.teacherName}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{video.subject || "-"}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{formatSize(video.fileSize)}</td>
-                    <td className="px-6 py-4"><StatusBadge status={video.status} /></td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(video.createdAt).toLocaleDateString("tr-TR")}
-                    </td>
-                  </tr>
-                ))}
-                {data?.items.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">Video bulunamadı</td>
-                  </tr>
+        <div className="space-y-3">
+          {tree.map((school) => {
+            const schoolOpen = openSchools.has(school.sid);
+            return (
+              <div key={school.sid} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                {/* Okul */}
+                <button
+                  onClick={() => toggle(openSchools, setOpenSchools, school.sid)}
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50 text-left"
+                >
+                  <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${schoolOpen ? "rotate-180" : ""}`} />
+                  <Building2 className="w-5 h-5 text-blue-600 shrink-0" />
+                  <span className="font-semibold text-gray-900 flex-1">{school.name}</span>
+                  <span className="text-xs text-gray-400">{school.teachers.length} öğretmen • {school.count} video</span>
+                </button>
+
+                {schoolOpen && (
+                  <div className="border-t border-gray-100 divide-y divide-gray-100">
+                    {school.teachers.map((teacher) => {
+                      const tkey = `${school.sid}:${teacher.tid}`;
+                      const teacherOpen = openTeachers.has(tkey);
+                      return (
+                        <div key={tkey}>
+                          {/* Öğretmen */}
+                          <button
+                            onClick={() => toggle(openTeachers, setOpenTeachers, tkey)}
+                            className="w-full flex items-center gap-3 pl-10 pr-5 py-3 hover:bg-gray-50 text-left"
+                          >
+                            <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${teacherOpen ? "rotate-180" : ""}`} />
+                            <User className="w-4 h-4 text-gray-500 shrink-0" />
+                            <span className="font-medium text-gray-800 flex-1">{teacher.name}</span>
+                            <span className="text-xs text-gray-400">{teacher.videos.length} video</span>
+                          </button>
+
+                          {/* Videolar */}
+                          {teacherOpen && (
+                            <ul className="bg-gray-50/50">
+                              {teacher.videos.map((v) => (
+                                <li key={v.id}>
+                                  <Link to={`/videos/${v.id}`} className="flex items-center gap-3 pl-16 pr-5 py-2.5 hover:bg-blue-50/50">
+                                    <Film className="w-4 h-4 text-gray-400 shrink-0" />
+                                    <span className="text-sm font-medium text-blue-600 flex-1 truncate">{v.title}</span>
+                                    <span className="hidden sm:block text-xs text-gray-400">{v.subject || "-"}</span>
+                                    <span className="text-xs text-gray-400">{formatSize(v.fileSize)}</span>
+                                    <StatusBadge status={v.status} />
+                                    <span className="hidden md:block text-xs text-gray-400 w-20 text-right">
+                                      {new Date(v.createdAt).toLocaleDateString("tr-TR")}
+                                    </span>
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
-              </tbody>
-            </table>
-          </div>
-          {data && <Pagination page={page} totalCount={data.totalCount} pageSize={data.pageSize} onPageChange={setPage} />}
-        </>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

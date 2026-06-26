@@ -101,7 +101,8 @@ describe('VideoDetailPage', () => {
     setupMocks(makeVideo(), [makeEvaluation({ criteriaName: 'Sınıf Yönetimi' })]);
     renderWithProviders(<VideoDetailPage />);
 
-    expect(await screen.findByText('Sınıf Yönetimi')).toBeInTheDocument();
+    // Kriter adı hem grup başlığında hem kartta görünür
+    expect((await screen.findAllByText('Sınıf Yönetimi')).length).toBeGreaterThan(0);
     expect(screen.getByText('GPT-4o')).toBeInTheDocument();
   });
 
