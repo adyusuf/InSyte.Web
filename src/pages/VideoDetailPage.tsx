@@ -5,6 +5,7 @@ import { Video, Evaluation, Criteria, AIModel, AIProvider, ApiResponse, PagedRes
 import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
 import EvaluationReport from "../components/EvaluationReport";
+import VideoPlayer from "../components/VideoPlayer";
 import { EVALUATION_STAGE_LABEL, EVALUATION_STAGE_COLOR, EVALUATION_IN_PROGRESS } from "../lib/constants";
 import { ArrowLeft, Plus, RefreshCw, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -148,6 +149,16 @@ export default function VideoDetailPage() {
             <span className="text-gray-500">Degerlendirmeler:</span>
             <p className="font-medium">{video.evaluationCount}</p>
           </div>
+        </div>
+
+        {/* Video önizleme + oynatma */}
+        <div className="mt-4 pt-4 border-t border-gray-200 max-w-xl">
+          <VideoPlayer
+            thumbnailUrl={video.thumbnailUrl}
+            playbackUrl={video.playbackUrl}
+            streamUid={video.streamUid}
+            title={video.title}
+          />
         </div>
       </div>
 

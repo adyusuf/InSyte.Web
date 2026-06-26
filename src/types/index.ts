@@ -112,6 +112,9 @@ export interface Video {
   status: VideoStatus;
   createdAt: string;
   evaluationCount: number;
+  streamUid?: string | null;
+  thumbnailUrl?: string | null;
+  playbackUrl?: string | null;
 }
 
 export interface Evaluation {
