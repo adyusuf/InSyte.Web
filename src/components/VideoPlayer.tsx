@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { Play, Film } from "lucide-react";
 
 type Props = {
@@ -6,14 +6,35 @@ type Props = {
   playbackUrl?: string | null;
   streamUid?: string | null;
   title?: string;
+  /** Dışarıdan videoda bir saniyeye atlamak için: seekRef.current?.(saniye) */
+  seekRef?: MutableRefObject<((seconds: number) => void) | null>;
 };
 
 /**
- * Video önizleme + oynatma. Önce kare/poster gösterir; tıklanınca oynatıcı açılır.
- * Cloudflare Stream → iframe; yerel → <video>. Oynatma yoksa bilgi mesajı.
+ * Video önizleme + oynatma. Önce kare/poster gösterir; tıklanınca oynatıcı açılır
+ * (otomatik oynatma yok — kullanıcı başlatır). Cloudflare Stream → iframe; yerel → <video>.
+ * seekRef ile dışarıdan belirli bir ana atlanabilir (kanıt/timeline tıklaması).
  */
-export default function VideoPlayer({ thumbnailUrl, playbackUrl, streamUid, title }: Props) {
+export default function VideoPlayer({ thumbnailUrl, playbackUrl, streamUid, title, seekRef }: Props) {
   const [playing, setPlaying] = useState(false);
+  const [startTime, setStartTime] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (!seekRef) return;
+    seekRef.current = (seconds: number) => {
+      setStartTime(seconds);
+      setPlaying(true);
+      const v = videoRef.current; // zaten oynuyorsa anında atla
+      if (v) {
+        v.currentTime = seconds;
+        v.play().catch(() => {});
+      }
+    };
+    return () => {
+      seekRef.current = null;
+    };
+  }, [seekRef]);
 
   if (!playbackUrl) {
     return (
@@ -28,30 +49,41 @@ export default function VideoPlayer({ thumbnailUrl, playbackUrl, streamUid, titl
       <div className="aspect-video w-full rounded-lg overflow-hidden bg-black">
         {streamUid ? (
           <iframe
-            src={`${playbackUrl}?autoplay=true`}
+            src={`${playbackUrl}?autoplay=true&startTime=${startTime}s`}
             title={title || "Video"}
             className="w-full h-full"
             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
             allowFullScreen
           />
         ) : (
-          <video src={playbackUrl} controls autoPlay className="w-full h-full" />
+          <video
+            ref={videoRef}
+            src={playbackUrl}
+            controls
+            autoPlay
+            onLoadedMetadata={(e) => {
+              if (startTime) e.currentTarget.currentTime = startTime;
+            }}
+            className="w-full h-full"
+          />
         )}
       </div>
     );
   }
 
-  // Önizleme (poster) — tıklanınca oynat
+  // Önizleme (poster) — tıklanınca baştan oynat
   return (
     <button
-      onClick={() => setPlaying(true)}
+      onClick={() => {
+        setStartTime(0);
+        setPlaying(true);
+      }}
       className="group relative aspect-video w-full rounded-lg overflow-hidden bg-gray-900 flex items-center justify-center"
       aria-label="Videoyu oynat"
     >
       {thumbnailUrl ? (
         <img src={thumbnailUrl} alt={title || "Önizleme"} className="w-full h-full object-cover opacity-90 group-hover:opacity-70 transition" />
       ) : (
-        // Stream thumbnail yoksa (yerel) videonun ilk karesini poster olarak kullan
         <video src={`${playbackUrl}#t=2`} preload="metadata" className="w-full h-full object-cover opacity-90 group-hover:opacity-70 transition" muted />
       )}
       <span className="absolute inset-0 flex items-center justify-center">

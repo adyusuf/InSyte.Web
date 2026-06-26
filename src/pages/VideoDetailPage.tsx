@@ -4,11 +4,11 @@ import api from "../lib/api";
 import { Video, Evaluation, Criteria, AIModel, AIProvider, ApiResponse, PagedResult } from "../types";
 import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
-import EvaluationReport from "../components/EvaluationReport";
 import VideoPlayer from "../components/VideoPlayer";
-import { EVALUATION_STAGE_LABEL, EVALUATION_STAGE_COLOR, EVALUATION_IN_PROGRESS } from "../lib/constants";
-import { ArrowLeft, Plus, RefreshCw, Loader2 } from "lucide-react";
-import { useState } from "react";
+import EvaluationCard from "../components/EvaluationCard";
+import { EVALUATION_IN_PROGRESS } from "../lib/constants";
+import { ArrowLeft, Plus } from "lucide-react";
+import { useRef, useState } from "react";
 
 const anyInProgress = (evals?: Evaluation[]) =>
   !!evals?.some((e) => EVALUATION_IN_PROGRESS.includes(e.stage));
@@ -18,6 +18,13 @@ export default function VideoDetailPage() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ criteriaId: "", aiModelId: "" });
+  const seekRef = useRef<((seconds: number) => void) | null>(null);
+
+  // Kanıt/timeline tıklaması: üstteki videoyu o ana sür + videoyu göster
+  const handleSeek = (seconds: number) => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    seekRef.current?.(seconds);
+  };
 
   const { data: evaluations } = useQuery({
     queryKey: ["evaluations", id],
@@ -115,7 +122,7 @@ export default function VideoDetailPage() {
         Videolara don
       </Link>
 
-      {/* Video Info */}
+      {/* Üst: video + bilgi */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -132,33 +139,37 @@ export default function VideoDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-4 pt-4 border-t border-gray-200">
-          <div>
-            <span className="text-gray-500">Dosya Adi:</span>
-            <p className="font-medium">{video.originalFileName || "-"}</p>
+        <div className="flex flex-col md:flex-row gap-6 mt-4 pt-4 border-t border-gray-200">
+          {/* Video oynatıcı (kanıt/timeline tıklamaları buraya atlar) */}
+          <div className="w-full md:w-80 shrink-0">
+            <VideoPlayer
+              thumbnailUrl={video.thumbnailUrl}
+              playbackUrl={video.playbackUrl}
+              streamUid={video.streamUid}
+              title={video.title}
+              seekRef={seekRef}
+            />
           </div>
-          <div>
-            <span className="text-gray-500">Boyut:</span>
-            <p className="font-medium">{(video.fileSize / (1024 * 1024)).toFixed(2)} MB</p>
-          </div>
-          <div>
-            <span className="text-gray-500">Konu:</span>
-            <p className="font-medium">{video.subject || "-"}</p>
-          </div>
-          <div>
-            <span className="text-gray-500">Degerlendirmeler:</span>
-            <p className="font-medium">{video.evaluationCount}</p>
-          </div>
-        </div>
 
-        {/* Video önizleme + oynatma */}
-        <div className="mt-4 pt-4 border-t border-gray-200 max-w-xl">
-          <VideoPlayer
-            thumbnailUrl={video.thumbnailUrl}
-            playbackUrl={video.playbackUrl}
-            streamUid={video.streamUid}
-            title={video.title}
-          />
+          {/* Meta */}
+          <div className="grid grid-cols-2 gap-4 text-sm flex-1 self-start">
+            <div>
+              <span className="text-gray-500">Dosya Adi:</span>
+              <p className="font-medium break-all">{video.originalFileName || "-"}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">Boyut:</span>
+              <p className="font-medium">{(video.fileSize / (1024 * 1024)).toFixed(2)} MB</p>
+            </div>
+            <div>
+              <span className="text-gray-500">Konu:</span>
+              <p className="font-medium">{video.subject || "-"}</p>
+            </div>
+            <div>
+              <span className="text-gray-500">Degerlendirmeler:</span>
+              <p className="font-medium">{video.evaluationCount}</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -218,61 +229,37 @@ export default function VideoDetailPage() {
         </form>
       </Modal>
 
-      {/* Evaluations List */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Degerlendirmeler ({evaluations?.items.length || 0})</h2>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Yeni Degerlendirme
-          </button>
-        </div>
-
-        <div className="divide-y divide-gray-200">
-          {evaluations?.items && evaluations.items.length > 0 ? (
-            evaluations.items.map((e) => (
-              <div key={e.id} className="px-6 py-4 hover:bg-gray-50">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{e.criteriaName}</p>
-                    <p className="text-xs text-gray-500 mt-1">{e.aiModelName}</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {new Date(e.createdAt).toLocaleString("tr-TR")}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${EVALUATION_STAGE_COLOR[e.stage] ?? "bg-gray-100 text-gray-600"}`}>
-                      {EVALUATION_IN_PROGRESS.includes(e.stage) && <Loader2 className="w-3 h-3 animate-spin" />}
-                      {EVALUATION_STAGE_LABEL[e.stage] ?? e.stage}
-                    </span>
-                    {e.attempt > 1 && (
-                      <p className="text-xs text-gray-400 mt-1">{e.attempt}. deneme</p>
-                    )}
-                    {e.errorMessage && (
-                      <p className="text-xs text-red-600 mt-1 max-w-xs break-words">{e.errorMessage}</p>
-                    )}
-                    {e.stage === "Failed" && (
-                      <button
-                        onClick={() => retryMutation.mutate(e.id)}
-                        disabled={retryMutation.isPending}
-                        className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline disabled:opacity-50"
-                      >
-                        <RefreshCw className="w-3 h-3" /> Yeniden Dene
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {e.result && <EvaluationReport result={e.result} questionText={questionTextMap} />}
-              </div>
-            ))
-          ) : (
-            <p className="px-6 py-4 text-sm text-gray-500">Degerlendirme yok</p>
-          )}
-        </div>
+      {/* Değerlendirmeler — ilki açık, diğerleri akordiyon */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-gray-900">Degerlendirmeler ({evaluations?.items.length || 0})</h2>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Yeni Degerlendirme
+        </button>
       </div>
+
+      {evaluations?.items && evaluations.items.length > 0 ? (
+        <div className="space-y-3">
+          {evaluations.items.map((e, i) => (
+            <div key={e.id} className="bg-white rounded-xl border border-gray-200">
+              <EvaluationCard
+                evaluation={e}
+                questionText={questionTextMap}
+                onSeek={handleSeek}
+                onRetry={(eid) => retryMutation.mutate(eid)}
+                defaultOpen={i === 0}
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500 bg-white rounded-xl border border-gray-200 px-6 py-4">
+          Degerlendirme yok
+        </p>
+      )}
     </div>
   );
 }

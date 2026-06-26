@@ -1,14 +1,6 @@
 import { useState } from "react";
-import { Code, ThumbsUp, TrendingUp } from "lucide-react";
-
-type SoruDeg = { soruId?: string; puan?: number; yorum?: string };
-type ReportData = {
-  genelPuan?: number;
-  ozet?: string;
-  gucluYonler?: string[];
-  gelisimAlanlari?: string[];
-  sorular?: SoruDeg[];
-};
+import { Code, ThumbsUp, TrendingUp, Play } from "lucide-react";
+import { parseEvaluation, formatTime, type Evidence } from "../lib/evaluation";
 
 // 0-10 veya 0-100 ölçeğini 100'e normalize eder (renk için).
 const normalize = (v: number) => (v <= 10 ? v * 10 : v);
@@ -19,33 +11,49 @@ const scoreColor = (v: number) => {
   return "text-red-700 bg-red-100";
 };
 
-type Props = { result?: string; questionText?: Record<string, string> };
+type Props = {
+  result?: string;
+  questionText?: Record<string, string>;
+  /** Bir kanıt zamanına tıklanınca videoda o ana atla */
+  onSeek?: (seconds: number) => void;
+};
 
-export default function EvaluationReport({ result, questionText }: Props) {
+// Kanıt zaman damgası çipleri — tıklanınca videoda o ana atlar
+function EvidenceChips({ kanitlar, onSeek }: { kanitlar: Evidence[]; onSeek?: Props["onSeek"] }) {
+  if (kanitlar.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {kanitlar.map((k, i) => (
+        <button
+          key={`ev-${i}`}
+          onClick={() => onSeek?.(k.baslangic)}
+          disabled={!onSeek}
+          title={k.aciklama}
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[11px] font-medium hover:bg-blue-100 disabled:opacity-60 disabled:cursor-default transition"
+        >
+          <Play className="w-2.5 h-2.5" fill="currentColor" />
+          {formatTime(k.baslangic)}
+          {k.bitis != null && k.bitis > k.baslangic && `–${formatTime(k.bitis)}`}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default function EvaluationReport({ result, questionText, onSeek }: Props) {
   const [showJson, setShowJson] = useState(false);
   if (!result) return null;
 
-  let data: ReportData | null = null;
-  try {
-    data = JSON.parse(result);
-  } catch {
-    data = null;
-  }
+  const d = parseEvaluation(result);
 
   // Beklenen şema değilse: ham metni göster
-  const recognized =
-    data && (data.genelPuan != null || data.ozet || data.sorular || data.gucluYonler);
-
-  if (!recognized) {
+  if (!d.ok) {
     return (
       <div className="mt-3 p-3 bg-gray-50 rounded text-xs text-gray-700 max-h-48 overflow-y-auto whitespace-pre-wrap">
         {result}
       </div>
     );
   }
-
-  const d = data as ReportData;
-  const guclu = d.gucluYonler ?? (data as Record<string, unknown>).guancluYonler as string[] | undefined;
 
   return (
     <div className="mt-3 space-y-4">
@@ -62,29 +70,35 @@ export default function EvaluationReport({ result, questionText }: Props) {
 
       {/* Güçlü yönler + gelişim alanları */}
       <div className="grid md:grid-cols-2 gap-4">
-        {guclu && guclu.length > 0 && (
+        {d.gucluYonler.length > 0 && (
           <div className="p-3 rounded-lg border border-green-100 bg-green-50/50">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-green-800 mb-2">
               <ThumbsUp className="w-4 h-4" /> Güçlü Yönler
             </p>
-            <ul className="space-y-1.5">
-              {guclu.map((g, i) => (
-                <li key={`g-${i}`} className="text-xs text-gray-700 flex gap-1.5">
-                  <span className="text-green-600">•</span> {g}
+            <ul className="space-y-2">
+              {d.gucluYonler.map((g, i) => (
+                <li key={`g-${i}`} className="text-xs text-gray-700">
+                  <span className="flex gap-1.5">
+                    <span className="text-green-600">•</span> {g.baslik}
+                  </span>
+                  <EvidenceChips kanitlar={g.kanitlar} onSeek={onSeek} />
                 </li>
               ))}
             </ul>
           </div>
         )}
-        {d.gelisimAlanlari && d.gelisimAlanlari.length > 0 && (
+        {d.gelisimAlanlari.length > 0 && (
           <div className="p-3 rounded-lg border border-amber-100 bg-amber-50/50">
             <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-800 mb-2">
               <TrendingUp className="w-4 h-4" /> Gelişim Alanları
             </p>
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {d.gelisimAlanlari.map((g, i) => (
-                <li key={`d-${i}`} className="text-xs text-gray-700 flex gap-1.5">
-                  <span className="text-amber-600">•</span> {g}
+                <li key={`d-${i}`} className="text-xs text-gray-700">
+                  <span className="flex gap-1.5">
+                    <span className="text-amber-600">•</span> {g.baslik}
+                  </span>
+                  <EvidenceChips kanitlar={g.kanitlar} onSeek={onSeek} />
                 </li>
               ))}
             </ul>
@@ -93,7 +107,7 @@ export default function EvaluationReport({ result, questionText }: Props) {
       </div>
 
       {/* Soru bazlı değerlendirme */}
-      {d.sorular && d.sorular.length > 0 && (
+      {d.sorular.length > 0 && (
         <div className="rounded-lg border border-gray-200 divide-y divide-gray-100">
           <p className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">
             Soru Değerlendirmeleri ({d.sorular.length})
@@ -110,6 +124,12 @@ export default function EvaluationReport({ result, questionText }: Props) {
                   <p className="text-xs font-medium text-gray-800 mb-0.5">{questionText[s.soruId]}</p>
                 )}
                 <p className="text-xs text-gray-600">{s.yorum}</p>
+                {s.gerekce && (
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    <span className="font-medium text-gray-600">Gerekçe:</span> {s.gerekce}
+                  </p>
+                )}
+                <EvidenceChips kanitlar={s.kanitlar} onSeek={onSeek} />
               </div>
             </div>
           ))}
@@ -126,7 +146,7 @@ export default function EvaluationReport({ result, questionText }: Props) {
         </button>
         {showJson && (
           <pre className="mt-2 p-3 bg-gray-900 text-gray-100 rounded text-[11px] overflow-x-auto max-h-64">
-            {JSON.stringify(data, null, 2)}
+            {JSON.stringify(d.raw, null, 2)}
           </pre>
         )}
       </div>
