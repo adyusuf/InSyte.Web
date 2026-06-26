@@ -4,6 +4,7 @@ import api from "../lib/api";
 import { Video, Evaluation, Criteria, AIModel, AIProvider, ApiResponse, PagedResult } from "../types";
 import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
+import EvaluationReport from "../components/EvaluationReport";
 import { EVALUATION_STAGE_LABEL, EVALUATION_STAGE_COLOR, EVALUATION_IN_PROGRESS } from "../lib/constants";
 import { ArrowLeft, Plus, RefreshCw, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -39,6 +40,23 @@ export default function VideoDetailPage() {
   const retryMutation = useMutation({
     mutationFn: (evalId: string) => api.post(`/evaluations/${evalId}/retry`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["evaluations", id] }),
+  });
+
+  // Rapordaki soru metinleri için: değerlendirmelerin kriterlerinin sorularını çek
+  const criteriaIds = [...new Set((evaluations?.items ?? []).map((e) => e.criteriaId))];
+  const { data: questionTextMap } = useQuery({
+    queryKey: ["question-text", criteriaIds.join(",")],
+    enabled: criteriaIds.length > 0,
+    queryFn: async () => {
+      const map: Record<string, string> = {};
+      for (const cid of criteriaIds) {
+        const qs = await api
+          .get<ApiResponse<{ id: string; question: string }[]>>(`/criteria/${cid}/questions`)
+          .then((r) => r.data.data ?? []);
+        qs.forEach((q) => (map[q.id] = q.question));
+      }
+      return map;
+    },
   });
 
   const { data: criteria } = useQuery({
@@ -236,11 +254,7 @@ export default function VideoDetailPage() {
                     )}
                   </div>
                 </div>
-                {e.result && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded text-xs text-gray-700 max-h-32 overflow-y-auto">
-                    {e.result}
-                  </div>
-                )}
+                {e.result && <EvaluationReport result={e.result} questionText={questionTextMap} />}
               </div>
             ))
           ) : (
