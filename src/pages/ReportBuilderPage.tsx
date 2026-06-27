@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../lib/api";
 import { Comparison, Evaluation, ApiResponse, PagedResult } from "../types";
 import { evaluationToSelectable, flattenSelectable, MADDE_GRUPLARI, METIN_GRUPLARI, type SelItem, type MaddeGrup } from "../lib/reportItems";
@@ -82,6 +82,11 @@ export default function ReportBuilderPage() {
   const [gelisimText, setGelisimText] = useState(""); // gelişim alanları — tek metin
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // İçerik düzenlenince "kaydedildi" durumunu sıfırla → PDF eski içeriği vermesin
+  useEffect(() => {
+    setSaved(false);
+  }, [title, giris, sonuc, items, gucluText, gelisimText]);
 
   const toggle = (itemId: string) =>
     setSelected((prev) => {
