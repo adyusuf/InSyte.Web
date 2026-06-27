@@ -8,3 +8,7 @@ build/
 *.log
 .DS_Store
 .vercel
+
+# Playwright
+playwright-report/
+test-results/
